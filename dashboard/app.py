@@ -36,3 +36,8 @@ async def run_logic(niche: str):
 @app.get("/inventory")
 async def get_inventory():
     return products_db
+@app.get("/inventory-page", response_class=HTMLResponse)
+async def get_inventory_page():
+    base_path = os.path.dirname(__file__)
+    with open(os.path.join(base_path, "inventory.html"), "r", encoding="utf-8") as f:
+        return f.read()
