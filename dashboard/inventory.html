@@ -372,3 +372,11 @@
     </script>
 </body>
 </html>
+@staticmethod
+    def check_golden_opportunity(data):
+        """בדיקה האם המוצר הוא הזדמנות זהב ושליחת התראה"""
+        is_golden = data['profit'] > 25 and data['demand'] > 85
+        if is_golden:
+            # כאן ניתן להוסיף שליחת מייל, Telegram או סתם לוג
+            print(f"✨ GOLDEN OPPORTUNITY DETECTED: {data['title']} (Profit: ${data['profit']})")
+        return is_golden
