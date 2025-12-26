@@ -73,3 +73,23 @@ class EmpireController:
             await self.check_and_notify(data)
             return f"Success: {data['title']} is Live!"
         return "Profit too low."
+async def run_autonomous_cycle(self, niche):
+    # כאן נכניס את הסריקה האמיתית (למשל דרך SerpApi או סקרייפר)
+    # לצורך הדוגמה, נדמה חישוב ROI אמיתי
+    cost = 15.0  # מחיר ספק ממוצע שמצאנו
+    suggested_price = 39.9
+    profit = suggested_price - cost
+    
+    data = {
+        "title": f"Premium {niche} Gadget",
+        "cost": cost,
+        "suggested_price": suggested_price,
+        "profit": profit,
+        "url": "https://aliexpress.com/item/123",
+        "demand": 87 if "tech" in niche.lower() else 65 # לוגיקה בסיסית
+    }
+    
+    if profit > 20:
+        self.save_to_db(data)
+        return {"status": "Success", "data": data}
+    return {"status": "Failed", "message": "Low profit margin"}
