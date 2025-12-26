@@ -3,109 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ניהול מלאי - Dropship Empire</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #0f172a; color: white; min-height: 100vh; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; }
-    </style>
-</head>
-<body class="p-4 md:p-10">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-10">
-            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">📦 ניהול מוצרים מלא</h1>
-            <a href="/" class="glass px-4 py-2 text-sm hover:bg-white/10 transition">← חזרה לדאשבורד</a>
-        </div>
-
-        <div class="glass overflow-hidden">
-            <table class="w-full text-right border-collapse">
-                <thead>
-                    <tr class="bg-white/10 text-gray-300 text-sm uppercase">
-                        <th class="p-4">שם המוצר</th>
-                        <th class="p-4">עלות ספק</th>
-                        <th class="p-4">מחיר מומלץ</th>
-                        <th class="p-4">רווח צפוי</th>
-                        <th class="p-4">פעולות</th>
-                    </tr>
-                </thead>
-                <tbody id="inventoryBody" class="divide-y divide-white/5">
-                    </tbody>
-            </table>
-            <div id="emptyState" class="p-10 text-center text-gray-500">עדיין לא נסרקו מוצרים רווחיים.</div>
-        </div>
-    </div>
-
-    <script>
-        async function loadInventory() {
-            const res = await fetch('/api/inventory');
-            const data = await res.json();
-            const body = document.getElementById('inventoryBody');
-            const empty = document.getElementById('emptyState');
-
-            if (data.length > 0) {
-                empty.classList.add('hidden');
-                body.innerHTML = data.map(p => `
-                    <tr class="hover:bg-white/5 transition">
-                        <td class="p-4 font-medium">${p.title}</td>
-                        <td class="p-4 text-gray-400">$${p.cost}</td>
-                        <td class="p-4 text-green-400 font-bold">$${p.suggested_price}</td>
-                        <td class="p-4 text-blue-400 font-bold">$${p.profit}</td>
-                        <td class="p-4 space-x-2 space-x-reverse">
-                            <button class="bg-blue-600 px-3 py-1 rounded text-xs hover:bg-blue-500">פרסם</button>
-                            <button class="text-red-400 hover:text-red-300 text-xs">מחק</button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-        }
-        window.onload = loadInventory;
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EmpireOS | Inventory Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root { --accent: #3b82f6; --bg: #020617; }
         body { 
-            background-color: #020617; 
+            background-color: var(--bg); 
             color: #f8fafc; 
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-image: radial-gradient(circle at 100% 0%, #1e1b4b 0%, transparent 50%);
             min-height: 100vh;
         }
         .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .table-row:hover { background: rgba(255, 255, 255, 0.03); }
+        .table-row:hover { background: rgba(255, 255, 255, 0.03); transform: scale(1.002); transition: all 0.2s; }
         .badge-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
+        .gradient-text { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
 <body class="p-4 md:p-12">
     <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-12">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
             <div>
-                <h1 class="text-3xl font-extrabold tracking-tighter italic">📦 ניהול <span class="text-blue-500">מלאי</span></h1>
-                <p class="text-gray-500 text-sm mt-1">ריכוז מוצרים רווחיים שנשמרו ב-Database</p>
+                <h1 class="text-4xl font-extrabold tracking-tighter italic">MY <span class="gradient-text">INVENTORY</span></h1>
+                <p class="text-gray-500 text-sm mt-2">ניהול מוצרים רווחיים שאותרו על ידי ה-AI</p>
             </div>
-            <button onclick="location.href='/'" class="glass px-6 py-3 rounded-2xl text-sm font-semibold hover:bg-white/5 transition">← חזרה לבקרה</button>
+            <div class="flex gap-4">
+                <button onclick="location.href='/'" class="glass px-8 py-4 rounded-2xl text-sm font-bold hover:bg-white/5 transition border border-white/10 uppercase tracking-widest">← Back to Command</button>
+            </div>
         </div>
 
-        <div class="glass rounded-[2.5rem] overflow-hidden">
+        <div class="glass rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-right border-collapse">
                     <thead>
                         <tr class="bg-white/5 text-gray-400 text-[10px] uppercase tracking-[0.2em]">
-                            <th class="p-6">פרטי מוצר</th>
-                            <th class="p-6">ניתוח עלויות</th>
-                            <th class="p-6">רווח נקי</th>
-                            <th class="p-6">סטטוס</th>
-                            <th class="p-6">פעולות AI</th>
+                            <th class="p-6">Product Intelligence</th>
+                            <th class="p-6 text-center">Market Price</th>
+                            <th class="p-6 text-center">Net Profit</th>
+                            <th class="p-6">AI Ad Copy Preview</th>
+                            <th class="p-6 text-left">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="inventoryBody" class="divide-y divide-white/5 font-medium">
+                    <tbody id="inventoryBody" class="divide-y divide-white/5">
+                        </tbody>
+                </table>
+            </div>
+            <div id="loader" class="p-24 text-center">
+                <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+                <p class="text-gray-500 font-mono text-sm tracking-widest">SYNCHRONIZING DATABASE...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadInventory() {
+            try {
+                // קריאה ל-API שמושך את המוצרים מה-Database (נמצא ב-main.py שלך)
+                const res = await fetch('/api/inventory');
+                const data = await res.json();
+                const body = document.getElementById('inventoryBody');
+                const loader = document.getElementById('loader');
+
+                if (data.length > 0) {
+                    loader.classList.add('hidden');
+                    body.innerHTML = data.map(p => `
+                        <tr class="table-row">
+                            <td class="p-6">
+                                <div class="font-bold text-white text-lg">${p.title}</div>
+                                <div class="text-[10px] text-blue-400/60 font-mono mt-1 uppercase">Demand Score: ${p.demand_score || 85}%</div>
+                            </td>
+                            <td class="p-6 text-center font-mono">
+                                <div class="text-xs text-gray-500">Suggested</div>
+                                <div class="text-white font-bold">$${p.suggested_price}</div>
+                            </td>
+                            <td class="p-6 text-center">
+                                <div class="text-green-400 font-bold text-xl">$${p.profit}</div>
+                                ${p.profit > 25 ? '<span class="badge-gold">GOLD OPPORTUNITY</span>' : ''}
+                            </td>
+                            <td class="p-6 max-w-xs">
+                                <div class="text-[10px] text-gray-400 italic line-clamp-2 bg-black/20 p-3 rounded-xl border border-white/5">
+                                    "נמאס לך ממוצרים משעממים? הכירו את הפתרון החדש..."
+                                </div>
+                            </td>
+                            <td class="p-6 text-left">
+                                <button class="px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-bold uppercase hover:bg-blue-500/20 transition">
+                                    Launch Ads
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    loader.innerHTML = '<p class="text-gray-600">No products found. Run an AI scan first.</p>';
+                }
+            } catch (e) {
+                console.error("Sync Error:", e);
+                document.getElementById('loader').innerText = "⚠️ DATABASE SYNC ERROR";
+            }
+        }
+        
+        window.onload = loadInventory;
+    </script>
+</body>
+</html>                    <tbody id="inventoryBody" class="divide-y divide-white/5 font-medium">
                         </tbody>
                 </table>
             </div>
