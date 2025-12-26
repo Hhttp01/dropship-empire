@@ -29,3 +29,11 @@ class EmpireController:
         self.ads.launch_test(data)
         
         return f"Success: {data['title']} is Live!"
+class EmpireController:
+    # ... (בתוך ה-run_autonomous_cycle) ...
+    
+    async def check_and_notify(self, data):
+        """שדרוג 3: התראה על הזדמנות זהב"""
+        if data['profit'] > 25:
+            msg = f"🌟 GOLDEN OPPORTUNITY: {data['title']} has ${data['profit']} profit!"
+            print(f"TELEGRAM NOTIFICATION: {msg}") # כאן יבוא החיבור לבוט בהמשך
