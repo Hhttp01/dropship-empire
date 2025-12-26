@@ -85,3 +85,17 @@ async def get_inventory_data():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+import sqlite3
+# ... (שאר הקוד הקיים)
+
+@app.get("/api/inventory")
+async def get_inventory_data():
+    conn = sqlite3.connect('empire_data.db')
+    conn.row_factory = sqlite3.Row # מאפשר לשלוף נתונים כמילון
+    c = conn.cursor()
+    c.execute("SELECT * FROM products ORDER BY timestamp DESC")
+    rows = c.fetchall()
+    conn.close()
+    
+    # המרה לפורמט JSON שהדפדפן מבין
+    return [dict(row) for row in rows]
