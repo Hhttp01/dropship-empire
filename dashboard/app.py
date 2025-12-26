@@ -22,3 +22,17 @@ if __name__ == "__main__":
     # Render מעביר לנו את הפורט במשתנה סביבה
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+# רשימה גלובלית זמנית לשמירת מוצרים (במקום בסיס נתונים כרגע)
+products_db = []
+
+@app.post("/run")
+async def run_logic(niche: str):
+    result_data = await controller.run_autonomous_cycle(niche)
+    # שמירת המוצר ברשימה אם הוא רווחי
+    if "Success" in result_data:
+        products_db.append(result_data['product_info']) 
+    return {"message": result_data}
+
+@app.get("/inventory")
+async def get_inventory():
+    return products_db
