@@ -86,3 +86,9 @@
     <div id="event-log" class="space-y-2 text-sm max-h-40 overflow-y-auto">
         </div>
 </div>
+if (data.profit >= 25) {
+    new Notification("🌟 מוצר זהב נמצא!", {
+        body: `המוצר ${data.title} נמצא עם רווח של $${data.profit}`,
+        icon: "/static/icon.png"
+    });
+}
