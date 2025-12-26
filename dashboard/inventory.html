@@ -3,104 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EmpireOS | Inventory Intelligence Center</title>
+    <title>EmpireOS | Asset Intelligence & Notifications</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --accent: #3b82f6;
-            --bg: #020617;
-            --card: rgba(15, 23, 42, 0.6);
-            --border: rgba(255, 255, 255, 0.08);
+            --accent: #3b82f6; --bg: #020617;
+            --card: rgba(15, 23, 42, 0.6); --border: rgba(255, 255, 255, 0.08);
         }
 
         body {
-            background-color: var(--bg);
-            color: #f1f5f9;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-image: 
-                radial-gradient(circle at 0% 0%, #1e1b4b 0%, transparent 40%),
-                radial-gradient(circle at 100% 100%, #1e1b4b 0%, transparent 40%);
-            background-attachment: fixed;
-            min-height: 100vh;
+            background-color: var(--bg); color: #f1f5f9; font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image: radial-gradient(circle at 0% 0%, #1e1b4b 0%, transparent 40%);
+            background-attachment: fixed; min-height: 100vh;
         }
 
         .font-space { font-family: 'Space Grotesk', sans-serif; }
+        .glass { background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border); }
+        .glass-hover:hover { background: rgba(30, 41, 59, 0.7); transform: translateY(-2px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        /* Glassmorphism Classes */
-        .glass {
-            background: var(--card);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        /* Animation for Golden Alert */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-
-        .glass-hover:hover {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .notification-toast {
+            animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-
-        /* Table Styling */
-        .table-container::-webkit-scrollbar {
-            height: 6px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-fade { animation: fadeIn 0.5s ease-out forwards; }
 
         .badge-gold {
             background: linear-gradient(135deg, #fbbf24, #d97706);
-            color: #000;
-            font-weight: 800;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+            color: #000; font-weight: 800; box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
         }
 
-        .gradient-text {
-            background: linear-gradient(135deg, #60a5fa, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Simulation Modal Logic */
-        #simModal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-        }
+        .gradient-text { background: linear-gradient(135deg, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
-<body class="p-6 md:p-12 lg:p-16">
+<body class="p-6 md:p-12">
 
-    <div id="simModal">
+    <div id="notificationArea" class="fixed top-6 right-6 z-[100] flex flex-col gap-4 max-w-sm w-full"></div>
+
+    <div id="simModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-[110] items-center justify-center p-4">
         <div class="glass p-8 rounded-[2rem] max-w-md w-full border border-blue-500/30">
-            <h2 class="text-2xl font-bold mb-4 font-space gradient-text uppercase">Empire Growth Report</h2>
+            <h2 class="text-2xl font-bold mb-4 font-space gradient-text uppercase tracking-tighter">Growth Projection</h2>
             <div id="simContent" class="space-y-4 text-gray-300"></div>
-            <button onclick="closeModal()" class="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition">CLOSE ANALYSIS</button>
+            <button onclick="closeModal()" class="mt-8 w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/20">CONFIRM & EXIT</button>
         </div>
     </div>
 
     <div class="max-w-[1400px] mx-auto">
         
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-16">
+        <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-16">
             <div class="animate-fade">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="h-1.5 w-10 bg-blue-500 rounded-full"></span>
+                    <span class="text-blue-500 font-bold tracking-[0.4em] text-[10px] uppercase">Live Asset Manager</span>
+                </div>
+                <h1 class="text-6xl font-black font-space tracking-tighter uppercase italic">Inventory <span class="gradient-text">Vault</span></h1>
+                <p class="text-gray-500 mt-4 text-lg font-medium italic">ניהול הזדמנויות זהב ומעקב אחר תקציבי פרסום מאושרים</p>
+            </div>
+
+            <div class="flex flex-wrap gap-4">
+                <button onclick="exportToCSV()" class="glass-hover glass px-8 py-4 rounded-2xl text-xs font-bold text-green-400 uppercase tracking-widest flex items-center gap-3">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Data Export
+                </button>
+                <button onclick="location.href='/'" class="glass-hover glass px-8 py-4 rounded-2xl text-xs font-bold text-white uppercase tracking-widest flex items-center gap-3">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
+                    Command Hub
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div class="glass p-8 rounded-[2.5rem] border-b-4 border-blue-500">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-2">Tracked Assets</p>
+                <h3 id="stat-count" class="text-5xl font-black font-space">0</h3>
+            </div>
+            <div class="glass p-8 rounded-[2.5rem] border-b-4 border-green-500">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-2">Projected Profit</p>
+                <h3 id="stat-profit" class="text-5xl font-black font-space text-green-400">$0</h3>
+            </div>
+            <div class="glass p-8 rounded-[2.5rem] border-b-4 border-purple-500">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-2">Demand Avg</p>
+                <h3 id="stat-demand" class="text-5xl font-black font-space text-purple-400">0%</h3>
+            </div>
+            <div class="glass p-8 rounded-[2.5rem] border-b-4 border-yellow-500">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-2">Gold Items</p>
+                <h3 id="stat-gold" class="text-5xl font-black font-space text-yellow-500">0</h3>
+            </div>
+        </div>
+
+        <div class="glass rounded-[3.5rem] overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-white/5 text-gray-400 text-[11px] uppercase tracking-[0.3em] font-extrabold">
+                            <th class="p-10">Product Strategy</th>
+                            <th class="p-10 text-center">ROI & Budget</th>
+                            <th class="p-10 text-center">Confidence</th>
+                            <th class="p-10 text-center">Net Profit</th>
+                            <th class="p-10 text-left">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+            <div id="loader" class="p-32 text-center text-gray-600 font-mono text-xs tracking-[0.5em] animate-pulse">CONNECTING TO VAULT...</div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * מערכת התראות בזמן אמת
+         */
+        function notifyGold(productName, profit) {
+            const area = document.getElementById('notificationArea');
+            const toast = document.createElement('div');
+            toast.className = "notification-toast glass p-5 rounded-2xl border-l-4 border-yellow-500 shadow-2xl flex items-center gap-4";
+            toast.innerHTML = `
+                <div class="bg-yellow-500/20 p-3 rounded-full text-yellow-500 font-bold italic">GO</div>
+                <div>
+                    <div class="text-[10px] font-bold text-yellow-500 uppercase">Golden Opportunity Found!</div>
+                    <div class="text-sm font-bold text-white">${productName}</div>
+                    <div class="text-[10px] text-gray-500">Net Profit Potential: $${profit}</div>
+                </div>
+            `;
+            area.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 6000);
+        }
+
+        async function loadInventory() {
+            try {
+                const response = await fetch('/api/inventory');
+                const data = await response.json();
+                const body = document.getElementById('inventoryBody');
+                const loader = document.getElementById('loader');
+
+                if (data && data.length > 0) {
+                    loader.style.display = 'none';
+                    updateStats(data);
+                    
+                    body.innerHTML = data.map((p, idx) => {
+                        const isGold = p.profit > 25 && p.demand_score > 85;
+                        // אם זה פריט זהב חדש שנוסף לאחרונה (נגיד ב-10 דקות האחרונות)
+                        if (isGold && idx === 0) notifyGold(p.title, p.profit);
+
+                        return `
+                            <tr class="table-row group hover:bg-white/[0.03] transition-all duration-300">
+                                <td class="p-10">
+                                    <div class="flex items-center gap-5">
+                                        <div class="h-14 w-14 rounded-2xl glass flex items-center justify-center font-black text-blue-500 font-space text-xl border-blue-500/30 group-hover:scale-110 transition-transform">
+                                            ${p.title.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-white text-2xl font-space tracking-tight leading-none">${p.title}</div>
+                                            <div class="flex items-center gap-3 mt-3">
+                                                <span class="text-[10px] text-gray-500 font-mono">ASSET_ID: #${p.id}</span>
+                                                <span class="text-[10px] text-blue-400 font-mono uppercase tracking-widest">${p.timestamp}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-10 text-center font-mono">
+                                    <div class="text-[10px] text-gray-600 uppercase mb-2">Financial Flow</div>
+                                    <div class="text-white font-bold text-xl">$${p.suggested_price}</div>
+                                    <div class="text-[10px] text-blue-400/60 mt-2 italic">Ad Budget: $${p.ad_budget || '10.0'}</div>
+                                </td>
+                                <td class="p-10 text-center">
+                                    <div class="inline-block p-4 rounded-3xl bg-white/5 border border-white/5 min-w-[140px]">
+                                        <div class="text-[10px] font-bold text-purple-400 uppercase mb-2">Demand Score</div>
+                                        <div class="text-2xl font-black text-white">${p.demand_score}%</div>
+                                        <div class="text-[9px] mt-2 font-bold uppercase ${p.competition === 'Low' ? 'text-green-500' : 'text-yellow-500'}">
+                                            ${p.competition} Comp
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-10 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="text-green-400 font-black text-4xl font-space">$${p.profit}</div>
+                                        ${isGold ? '<span class="badge-gold px-3 py-1 mt-3 rounded-lg text-[10px] tracking-tight">GOLD OPPORTUNITY</span>' : '<span class="text-[10px] text-gray-600 mt-2 italic">Net Profit</span>'}
+                                    </div>
+                                </td>
+                                <td class="p-10 text-left">
+                                    <div class="flex justify-end gap-3">
+                                        <button onclick="runSim(${JSON.stringify(p).replace(/"/g, '&quot;')})" class="glass-hover px-5 py-3 rounded-xl text-[10px] font-black uppercase text-blue-400 border border-blue-500/20">Analyze</button>
+                                        <button onclick="deleteAsset(${p.id})" class="glass-hover px-5 py-3 rounded-xl text-[10px] font-black uppercase text-red-500 border border-red-500/20">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    loader.innerHTML = "No assets located. Launch a market scan to begin.";
+                }
+            } catch (e) {
+                document.getElementById('loader').innerHTML = "⚠️ DATABASE SYNC FAILED";
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('stat-count').innerText = data.length;
+            const profit = data.reduce((s, p) => s + p.profit, 0);
+            document.getElementById('stat-profit').innerText = `$${(profit * 40).toLocaleString()}`;
+            const demand = data.reduce((s, p) => s + p.demand_score, 0) / data.length;
+            document.getElementById('stat-demand').innerText = `${Math.round(demand)}%`;
+            const gold = data.filter(p => p.profit > 25 && p.demand_score > 85).length;
+            document.getElementById('stat-gold').innerText = gold;
+        }
+
+        function runSim(p) {
+            const modal = document.getElementById('simModal');
+            const content = document.getElementById('simContent');
+            const sales = Math.floor((p.demand_score / 100) * 50);
+            content.innerHTML = `
+                <div class="space-y-5 font-mono text-sm border-t border-white/5 pt-5">
+                    <div class="flex justify-between"><span>Product:</span><span class="text-white">${p.title}</span></div>
+                    <div class="flex justify-between"><span>Est. Weekly Sales:</span><span class="text-blue-400">${sales} Units</span></div>
+                    <div class="flex justify-between text-xl font-bold mt-10"><span>Monthly ROI:</span><span class="text-green-400">$${(sales * 4 * p.profit).toFixed(2)}</span></div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('simModal').style.display = 'none'; }
+
+        async function deleteAsset(id) {
+            if (confirm('Delete asset from vault?')) {
+                await fetch(`/api/delete/${id}`, { method: 'DELETE' });
+                loadInventory();
+            }
+        }
+
+        function exportToCSV() {
+            const rows = Array.from(document.querySelectorAll('tr')).slice(1);
+            let csv = "ID,Product,Profit,Demand\n";
+            rows.forEach(r => {
+                const cols = r.querySelectorAll('td');
+                const title = cols[0].querySelector('.text-2xl').innerText;
+                const profit = cols[3].querySelector('.text-green-400').innerText;
+                csv += `"${title}",${profit}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Empire_Export.csv`;
+            link.click();
+        }
+
+        window.onload = loadInventory;
+    </script>
+</body>
+</html>            <div class="animate-fade">
                 <div class="flex items-center gap-3 mb-2">
                     <span class="h-2 w-12 bg-blue-500 rounded-full"></span>
                     <span class="text-blue-500 font-bold tracking-[0.3em] text-xs uppercase">Management Suite</span>
