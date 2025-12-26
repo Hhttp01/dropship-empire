@@ -159,3 +159,8 @@
     </script>
 </body>
 </html>
+function runSimulation(profit) {
+    const weeklySales = Math.floor(Math.random() * 50) + 10;
+    const monthlyProfit = weeklySales * 4 * profit;
+    alert(`צפי מכירות שבועי: ${weeklySales} יחידות.\nרווח חודשי משוער: $${monthlyProfit.toFixed(2)}`);
+}
