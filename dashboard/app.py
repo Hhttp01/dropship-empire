@@ -99,3 +99,7 @@ async def get_inventory_data():
     
     # המרה לפורמט JSON שהדפדפן מבין
     return [dict(row) for row in rows]
+@app.delete("/api/delete/{product_id}")
+async def delete_item(product_id: int):
+    controller.delete_from_db(product_id)
+    return {"message": "Deleted successfully"}
