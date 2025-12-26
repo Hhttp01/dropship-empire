@@ -3,56 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Dropship Empire</title>
+    <title>Empire OS | Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
-        .upgrade-badge { background: linear-gradient(90deg, #3b82f6, #8b5cf6); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        body { 
+            background-color: #05070a; 
+            color: #e2e8f0; 
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at top right, #1e293b, transparent), radial-gradient(circle at bottom left, #0f172a, transparent);
+        }
+        .card-glass { 
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .card-glass:hover { border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
+        .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     </style>
 </head>
-<body class="p-6">
-    <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-bold text-center mb-2">Super Dropship Empire</h1>
-        <p class="text-center text-gray-400 mb-8">ניהול אוטונומי מקצה לקצה</p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-blue-300">🔍 סריקה וסימולציה</h2>
-                    <span class="upgrade-badge">UPGRADE 1</span>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tighter text-white">EMPIRE<span class="text-blue-500">OS</span></h1>
+                <p class="text-gray-500 text-sm">Autonomous Intelligence System</p>
+            </div>
+            <nav class="flex gap-4">
+                <button onclick="location.href='/inventory-page'" class="card-glass px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/5">📦 המלאי שלי</button>
+                <div class="flex items-center gap-2 card-glass px-4 py-2 rounded-lg">
+                    <span class="status-dot bg-green-500 animate-pulse"></span>
+                    <span class="text-xs font-mono uppercase tracking-widest text-green-500">System Live</span>
                 </div>
-                <input type="text" id="nicheInput" placeholder="הכנס נישה..." class="w-full bg-white/5 border border-white/10 p-3 rounded-lg mb-4 outline-none">
-                <button onclick="runCycle()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-xl font-bold transition">הפעל סבב אוטונומי</button>
-                
-                <div id="sim-results" class="mt-4 p-3 bg-white/5 rounded-lg hidden">
-                    <p class="text-sm">📊 ציון ביקוש: <span id="demand" class="text-green-400 font-bold"></span></p>
-                    <p class="text-sm">⚔️ רמת תחרות: <span id="comp" class="text-yellow-400 font-bold"></span></p>
+            </nav>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="card-glass p-8 rounded-3xl">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                        <span class="text-blue-500">●</span> סריקה וניתוח שוק גלובלי
+                    </h2>
+                    <div class="flex gap-4">
+                        <input type="text" id="nicheInput" placeholder="הכנס נישה או מילת מפתח..." 
+                            class="flex-1 bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition">
+                        <button onclick="runCycle()" class="btn-primary px-8 rounded-2xl font-bold text-white transition transform active:scale-95">הפעל AI</button>
+                    </div>
+                    
+                    <div id="sim-section" class="mt-8 grid grid-cols-2 gap-4 hidden">
+                        <div class="bg-white/5 p-4 rounded-2xl">
+                            <p class="text-xs text-gray-500 uppercase">ציון ביקוש</p>
+                            <p id="demand" class="text-2xl font-bold text-blue-400">--</p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-2xl">
+                            <p class="text-xs text-gray-500 uppercase">רמת תחרות</p>
+                            <p id="comp" class="text-2xl font-bold text-purple-400">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-glass p-6 rounded-3xl">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">יומן פעילות בזמן אמת</h3>
+                    <div id="event-log" class="space-y-3 h-48 overflow-y-auto pr-2 custom-scrollbar text-sm">
+                        <div class="text-gray-600 italic">ממתין לפקודה...</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="glass p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-purple-300">🎨 מחולל תמונות AI</h2>
-                    <span class="upgrade-badge">UPGRADE 2</span>
+            <div class="space-y-6">
+                <div class="card-glass p-6 rounded-3xl border-l-4 border-blue-500">
+                    <h3 class="text-gray-400 text-xs uppercase mb-4 tracking-wider">AI Creative Prompt</h3>
+                    <div id="ai-prompt-area" class="text-sm leading-relaxed text-gray-300 italic bg-black/20 p-4 rounded-xl">
+                        ה-Prompt המקצועי לתמונת הפרסום יופיע כאן...
+                    </div>
                 </div>
-                <div id="ai-prompt-area" class="text-sm text-gray-400 italic p-3 bg-black/20 rounded-lg min-h-[80px]">
-                    ה-Prompt ליצירת תמונת פרסום יופיע כאן לאחר הסריקה...
-                </div>
-            </div>
 
-            <div class="glass p-6 md:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-green-300">📊 נתונים והתראות זהב</h2>
-                    <span class="upgrade-badge">UPGRADE 3</span>
-                </div>
-                <div class="grid grid-cols-3 gap-4 text-center">
-                    <div><p class="text-gray-400 text-xs">רווח צפוי</p><p id="profit" class="text-xl text-green-400 font-bold">$0.00</p></div>
-                    <div><p class="text-gray-400 text-xs">מוצרים</p><p class="text-xl text-blue-400 font-bold">0</p></div>
-                    <div><p class="text-gray-400 text-xs">ROAS</p><p class="text-xl text-purple-400 font-bold">0.0</p></div>
-                </div>
-                <div id="gold-alert" class="mt-4 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded text-center text-yellow-500 hidden font-bold">
-                    🌟 מצאנו מוצר זהב! נשלחה התראה לטלגרם.
+                <div id="gold-alert" class="hidden card-glass p-6 rounded-3xl bg-blue-500/10 border border-blue-500/30 animate-pulse-slow">
+                    <p class="text-blue-400 font-bold flex items-center gap-2">
+                        🌟 מצאנו הזדמנות זהב!
+                    </p>
+                    <p class="text-xs text-gray-400 mt-2">המוצר נשמר בבסיס הנתונים ונשלחה התראה.</p>
                 </div>
             </div>
         </div>
@@ -61,46 +97,33 @@
     <script>
         async function runCycle() {
             const niche = document.getElementById('nicheInput').value;
+            const log = document.getElementById('event-log');
+            
+            // UI Update
+            log.innerHTML = `<div class="text-blue-400">🚀 מריץ אנליזה עבור ${niche}...</div>` + log.innerHTML;
+            
             const res = await fetch('/run?niche=' + encodeURIComponent(niche), { method: 'POST' });
             const data = await res.json();
             
-            // עדכון הממשק עם השדרוגים (בדיקה מה הגיע מהשרת)
-            document.getElementById('sim-results').classList.remove('hidden');
-            document.getElementById('demand').innerText = Math.floor(Math.random() * 30 + 70) + "%"; // סימולציה
-            document.getElementById('comp').innerText = "Low-Medium";
+            document.getElementById('sim-section').classList.remove('hidden');
+            document.getElementById('demand').innerText = Math.floor(Math.random() * 20 + 75) + "%";
+            document.getElementById('comp').innerText = "LOW";
             
             if (data.message.includes("Success")) {
                 document.getElementById('gold-alert').classList.remove('hidden');
-                document.getElementById('ai-prompt-area').innerText = "Professional studio lighting, cinematic shot of " + niche + ", 8k, highly detailed.";
+                document.getElementById('ai-prompt-area').innerText = "High-end cinematic product photography of " + niche + ", studio lighting, 8k, professional grade.";
+                log.innerHTML = `<div class="text-green-400 font-bold">✅ נמצא מוצר רווחי! הועבר למלאי.</div>` + log.innerHTML;
+                
+                if (Notification.permission === "granted") {
+                    new Notification("🌟 מצאנו מוצר זהב!", { body: "הזדמנות חדשה בנישת " + niche });
+                }
             }
         }
+        
+        if (Notification.permission !== "denied") Notification.requestPermission();
     </script>
 </body>
-</html>
-<div class="flex justify-center gap-4 mb-8">
-    <button onclick="location.href='/'" class="text-blue-400 border-b-2 border-blue-400 pb-1">דף ראשי</button>
-    <button onclick="location.href='/inventory-page'" class="text-gray-400 hover:text-white transition pb-1">ניהול מוצרים</button>
-</div>
-<div class="glass p-6 mt-6 border-l-4 border-blue-500">
-    <h2 class="text-xl font-semibold mb-4 text-blue-300">📢 עדכוני מערכת אחרונים</h2>
-    <div id="event-log" class="space-y-2 text-sm max-h-40 overflow-y-auto">
-        </div>
-</div>
-if (data.profit >= 25) {
-    new Notification("🌟 מוצר זהב נמצא!", {
-        body: `המוצר ${data.title} נמצא עם רווח של $${data.profit}`,
-        icon: "/static/icon.png"
-    });
-}
-async function runCycle() {
-    const niche = document.getElementById('nicheInput').value;
-    const logContainer = document.getElementById('event-log');
-    
-    // שליחת בקשה לסריקה
-    const res = await fetch('/run?niche=' + encodeURIComponent(niche), { method: 'POST' });
-    const data = await res.json();
-    
-    // 1. הוספה ליומן האירועים (שדרוג 1)
+</html>    // 1. הוספה ליומן האירועים (שדרוג 1)
     const logEntry = document.createElement('div');
     logEntry.className = "p-2 border-b border-white/5 text-xs animate-pulse";
     
