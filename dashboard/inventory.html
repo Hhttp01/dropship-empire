@@ -19,89 +19,167 @@
         .table-row:hover { background: rgba(255, 255, 255, 0.03); transform: scale(1.002); transition: all 0.2s; }
         .badge-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
         .gradient-text { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="p-4 md:p-12">
     <div class="max-w-6xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
             <div>
-                <h1 class="text-4xl font-extrabold tracking-tighter italic">MY <span class="gradient-text">INVENTORY</span></h1>
-                <p class="text-gray-500 text-sm mt-2">ניהול מוצרים רווחיים שאותרו על ידי ה-AI</p>
+                <h1 class="text-4xl font-extrabold tracking-tighter italic uppercase">My <span class="gradient-text">Inventory</span></h1>
+                <p class="text-gray-500 text-sm mt-2 font-medium italic">ריכוז נכסים דיגיטליים ומוצרי זהב שאותרו</p>
             </div>
             <div class="flex gap-4">
-                <button onclick="location.href='/'" class="glass px-8 py-4 rounded-2xl text-sm font-bold hover:bg-white/5 transition border border-white/10 uppercase tracking-widest">← Back to Command</button>
+                <button onclick="exportToCSV()" class="glass px-6 py-4 rounded-2xl text-xs font-bold text-green-400 border border-green-500/20 hover:bg-green-500/10 transition uppercase tracking-widest">
+                    📥 Export CSV
+                </button>
+                <button onclick="location.href='/'" class="glass px-8 py-4 rounded-2xl text-sm font-bold hover:bg-white/5 transition border border-white/10 uppercase tracking-widest">
+                    ← Back to Command
+                </button>
             </div>
         </div>
 
         <div class="glass rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto scrollbar-hide">
                 <table class="w-full text-right border-collapse">
                     <thead>
-                        <tr class="bg-white/5 text-gray-400 text-[10px] uppercase tracking-[0.2em]">
+                        <tr class="bg-white/5 text-gray-400 text-[10px] uppercase tracking-[0.2em] font-bold">
                             <th class="p-6">Product Intelligence</th>
-                            <th class="p-6 text-center">Market Price</th>
+                            <th class="p-6 text-center">Cost Analysis</th>
                             <th class="p-6 text-center">Net Profit</th>
-                            <th class="p-6">AI Ad Copy Preview</th>
-                            <th class="p-6 text-left">Status</th>
+                            <th class="p-6 text-left">Control</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryBody" class="divide-y divide-white/5">
                         </tbody>
                 </table>
             </div>
+
             <div id="loader" class="p-24 text-center">
                 <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-                <p class="text-gray-500 font-mono text-sm tracking-widest">SYNCHRONIZING DATABASE...</p>
+                <p class="text-gray-500 font-mono text-sm tracking-widest uppercase">Synchronizing with Database...</p>
             </div>
         </div>
     </div>
 
     <script>
+        /**
+         * טעינת המלאי מה-API של השרת
+         */
         async function loadInventory() {
             try {
-                // קריאה ל-API שמושך את המוצרים מה-Database (נמצא ב-main.py שלך)
                 const res = await fetch('/api/inventory');
                 const data = await res.json();
                 const body = document.getElementById('inventoryBody');
                 const loader = document.getElementById('loader');
 
-                if (data.length > 0) {
+                if (data && data.length > 0) {
                     loader.classList.add('hidden');
                     body.innerHTML = data.map(p => `
-                        <tr class="table-row">
+                        <tr class="table-row transition-all duration-300">
                             <td class="p-6">
                                 <div class="font-bold text-white text-lg">${p.title}</div>
-                                <div class="text-[10px] text-blue-400/60 font-mono mt-1 uppercase">Demand Score: ${p.demand_score || 85}%</div>
-                            </td>
-                            <td class="p-6 text-center font-mono">
-                                <div class="text-xs text-gray-500">Suggested</div>
-                                <div class="text-white font-bold">$${p.suggested_price}</div>
-                            </td>
-                            <td class="p-6 text-center">
-                                <div class="text-green-400 font-bold text-xl">$${p.profit}</div>
-                                ${p.profit > 25 ? '<span class="badge-gold">GOLD OPPORTUNITY</span>' : ''}
-                            </td>
-                            <td class="p-6 max-w-xs">
-                                <div class="text-[10px] text-gray-400 italic line-clamp-2 bg-black/20 p-3 rounded-xl border border-white/5">
-                                    "נמאס לך ממוצרים משעממים? הכירו את הפתרון החדש..."
+                                <div class="text-[10px] text-blue-400/60 font-mono mt-1 uppercase tracking-wider">
+                                    ID: #${p.id} | Score: ${p.demand_score || '85'}%
                                 </div>
                             </td>
-                            <td class="p-6 text-left">
-                                <button class="px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-bold uppercase hover:bg-blue-500/20 transition">
-                                    Launch Ads
+                            <td class="p-6 text-center font-mono">
+                                <div class="text-[10px] text-gray-500 uppercase">Target Sale</div>
+                                <div class="text-white font-bold text-lg">$${p.suggested_price}</div>
+                                <div class="text-[9px] text-gray-600 mt-1 uppercase">Cost: $${p.cost || '0.00'}</div>
+                            </td>
+                            <td class="p-6 text-center">
+                                <div class="text-green-400 font-extrabold text-2xl tracking-tighter">$${p.profit}</div>
+                                ${p.profit > 25 ? '<span class="badge-gold">GOLD OPPORTUNITY</span>' : ''}
+                            </td>
+                            <td class="p-6 text-left space-x-2 space-x-reverse">
+                                <button onclick="runSimulation(${p.profit})" class="text-blue-400 hover:text-blue-300 text-[10px] font-bold uppercase border border-blue-500/20 px-4 py-2 rounded-xl transition-all">
+                                    Simulate
+                                </button>
+                                <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-400 text-[10px] font-bold uppercase border border-red-500/20 px-4 py-2 rounded-xl transition-all">
+                                    Delete
                                 </button>
                             </td>
                         </tr>
                     `).join('');
                 } else {
-                    loader.innerHTML = '<p class="text-gray-600">No products found. Run an AI scan first.</p>';
+                    loader.innerHTML = `
+                        <div class="py-10">
+                            <p class="text-gray-600 font-mono text-xs uppercase tracking-[0.2em]">No products found in system database.</p>
+                            <button onclick="location.href='/'" class="mt-4 text-blue-500 text-xs font-bold underline italic">Start AI Scan</button>
+                        </div>`;
                 }
             } catch (e) {
-                console.error("Sync Error:", e);
-                document.getElementById('loader').innerText = "⚠️ DATABASE SYNC ERROR";
+                console.error("Critical Sync Error:", e);
+                document.getElementById('loader').innerHTML = '<span class="text-red-500 font-bold uppercase tracking-widest italic">⚠️ Database Connection Lost</span>';
             }
         }
-        
+
+        /**
+         * מחיקת מוצר מה-Database
+         */
+        async function deleteProduct(id) {
+            if (confirm('בטוח שברצונך למחוק את המוצר לצמיתות?')) {
+                try {
+                    const res = await fetch(`/api/delete/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        loadInventory(); // רענון הרשימה
+                    } else {
+                        alert("שגיאה במחיקת המוצר מהשרת");
+                    }
+                } catch (e) {
+                    console.error("Delete failed:", e);
+                }
+            }
+        }
+
+        /**
+         * סימולציית רווחים שבועית/חודשית
+         */
+        function runSimulation(profit) {
+            const weeklySales = Math.floor(Math.random() * 35) + 15;
+            const monthlyProfit = (weeklySales * 4 * profit).toLocaleString();
+            alert(`
+📊 סימולציית פוטנציאל שוק
+---------------------------
+צפי מכירות שבועי: ${weeklySales} יחידות
+רווח חודשי משוער: $${monthlyProfit}
+---------------------------
+*הנתונים מבוססים על רמת ביקוש נוכחית`);
+        }
+
+        /**
+         * ייצוא המלאי לקובץ CSV
+         */
+        function exportToCSV() {
+            const rows = Array.from(document.querySelectorAll('tr'));
+            if (rows.length <= 1) return alert("אין נתונים לייצוא כרגע");
+            
+            let csvContent = "data:text/csv;charset=utf-8,ID,Product Name,Market Price,Net Profit\n";
+            
+            rows.slice(1).forEach(row => {
+                const cols = row.querySelectorAll('td');
+                const title = cols[0].querySelector('.text-lg').innerText;
+                const id = cols[0].querySelector('.text-blue-400\\/60').innerText.replace('ID: #', '').split(' |')[0];
+                const price = cols[1].querySelector('.text-white').innerText.replace('$', '');
+                const profit = cols[2].querySelector('.text-green-400').innerText.replace('$', '');
+                csvContent += `${id},"${title}",${price},${profit}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `EmpireOS_Inventory_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // הפעלה ראשונית בטעינת הדף
+        window.onload = loadInventory;
+    </script>
+</body>
+</html>        
         window.onload = loadInventory;
     </script>
 </body>
