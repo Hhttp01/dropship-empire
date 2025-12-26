@@ -3,63 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dropship Empire Control</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; color: white; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; }
-        .btn-glow { transition: 0.3s; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
-        .btn-glow:hover { box-shadow: 0 0 25px rgba(59, 130, 246, 0.8); transform: translateY(-2px); }
-    </style>
-</head>
-<body class="p-5 font-sans">
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">Super Dropship Empire</h1>
-            <p class="text-gray-400 mt-2">ניהול אוטונומי מקצה לקצה</p>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass p-6">
-                <h2 class="text-xl font-semibold mb-4 text-blue-300">🔍 סריקת מוצר חדש</h2>
-                <input type="text" id="nicheInput" placeholder="הכנס נישה (למשל: Gadgets)" class="w-full bg-white/5 border border-white/10 p-3 rounded-lg mb-4 outline-none focus:border-blue-500">
-                <button onclick="runCycle()" class="w-full bg-blue-600 p-3 rounded-lg font-bold btn-glow">הפעל סבב אוטונומי</button>
-                <div id="status" class="mt-4 text-sm text-gray-400">ממתין לפקודה...</div>
-            </div>
-
-            <div class="glass p-6">
-                <h2 class="text-xl font-semibold mb-4 text-purple-300">📊 נתונים בזמן אמת</h2>
-                <div class="space-y-3">
-                    <div class="flex justify-between"><span>רווח יומי צפוי:</span><span class="text-green-400">$0.00</span></div>
-                    <div class="flex justify-between"><span>מוצרים באוויר:</span><span class="text-blue-400">0</span></div>
-                    <div class="flex justify-between"><span>ROAS ממוצע:</span><span class="text-purple-400">0.0</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        async function runCycle() {
-            const niche = document.getElementById('nicheInput').value;
-            const status = document.getElementById('status');
-            status.innerText = "🚀 המערכת מריצה סבב... מחפשת טרנדים ומנתחת רווחיות";
-            
-            try {
-                const response = await fetch('/run?niche=' + encodeURIComponent(niche), { method: 'POST' });
-                const data = await response.json();
-                status.innerText = "✅ תוצאה: " + (data.message || "הסבב הושלם");
-            } catch (err) {
-                status.innerText = "❌ שגיאה בחיבור לשרת ה-Python";
-            }
-        }
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Dropship Empire</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -134,11 +77,3 @@
     </script>
 </body>
 </html>
-<div class="glass p-6 border-t-4 border-yellow-500">
-    <h2 class="text-xl font-semibold mb-4 text-yellow-300">🛡️ סימולטור שוק</h2>
-    <div id="market-results" class="space-y-2 text-sm">
-        <p>ציון ביקוש: <span id="demand-score">--</span></p>
-        <p>רמת תחרות: <span id="comp-level">--</span></p>
-        <div id="market-rec" class="font-bold mt-2"></div>
-    </div>
-</div>
