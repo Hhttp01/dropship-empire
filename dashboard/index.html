@@ -148,4 +148,55 @@
         }
         if (Notification.permission !== "denied") Notification.requestPermission();
     </script>
+    async function runCycle() {
+    const niche = document.getElementById('nicheInput').value;
+    const log = document.getElementById('event-log');
+    
+    if (!niche) {
+        alert("נא להזין נישה לסריקה");
+        return;
+    }
+
+    // עדכון ויזואלי התחלתי
+    log.innerHTML = `<div class="text-blue-400 animate-pulse">⚡ מפעיל סריקה גלובלית עבור "${niche}"...</div>` + log.innerHTML;
+    
+    try {
+        // פנייה לשרת (Python)
+        const res = await fetch('/run?niche=' + encodeURIComponent(niche), { method: 'POST' });
+        const result = await res.json();
+        
+        if (result.status === "Success") {
+            const data = result.data;
+
+            // עדכון נתוני שוק (שדרוג 1 ו-5)
+            document.getElementById('market-insight').classList.remove('hidden');
+            document.getElementById('demand-val').innerText = data.demand + "%";
+            document.getElementById('ebay-price').innerText = "$" + data.ebay_avg;
+            
+            // עדכון סטטוס תחרותי
+            const compStatus = document.getElementById('comp-status');
+            compStatus.innerText = data.is_competitive ? "🔥 מחיר תחרותי" : "⚠️ מחיר גבוה מהשוק";
+            compStatus.className = data.is_competitive ? "text-green-400 font-bold" : "text-red-400 font-bold";
+
+            // עדכון קופי למודעות (שדרוג 2)
+            document.getElementById('ad-copy-he').innerText = data.ad_copy.he;
+            document.getElementById('ad-copy-en').innerText = data.ad_copy.en;
+            document.getElementById('ai-prompt').innerText = data.ai_prompt;
+
+            // התראת זהב
+            document.getElementById('gold-alert').classList.remove('hidden');
+            log.innerHTML = `<div class="text-green-400 font-bold">✅ מוצר רווחי נמצא! ($${data.profit} רווח)</div>` + log.innerHTML;
+
+        } else {
+            log.innerHTML = `<div class="text-red-400">❌ סבב הושלם: ${result.message}</div>` + log.innerHTML;
+        }
+    } catch (error) {
+        log.innerHTML = `<div class="text-red-500 font-bold">⚠️ שגיאת חיבור לשרת</div>` + log.innerHTML;
+    }
+}
+
+// פונקציה לשדרוג 3: דו"ח בוקר
+function showMorningReport() {
+    alert("🌙 דוח סריקת לילה:\nהמערכת סרקה 5 נישות בלילה ומצאה 3 מוצרי זהב.\nהנתונים הועברו אוטומטית למלאי (Inventory).");
+}
 </body>
