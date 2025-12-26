@@ -55,3 +55,82 @@
     </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Dropship Empire</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
+        .upgrade-badge { background: linear-gradient(90deg, #3b82f6, #8b5cf6); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-center mb-2">Super Dropship Empire</h1>
+        <p class="text-center text-gray-400 mb-8">ניהול אוטונומי מקצה לקצה</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-blue-300">🔍 סריקה וסימולציה</h2>
+                    <span class="upgrade-badge">UPGRADE 1</span>
+                </div>
+                <input type="text" id="nicheInput" placeholder="הכנס נישה..." class="w-full bg-white/5 border border-white/10 p-3 rounded-lg mb-4 outline-none">
+                <button onclick="runCycle()" class="w-full bg-blue-600 hover:bg-blue-500 p-3 rounded-xl font-bold transition">הפעל סבב אוטונומי</button>
+                
+                <div id="sim-results" class="mt-4 p-3 bg-white/5 rounded-lg hidden">
+                    <p class="text-sm">📊 ציון ביקוש: <span id="demand" class="text-green-400 font-bold"></span></p>
+                    <p class="text-sm">⚔️ רמת תחרות: <span id="comp" class="text-yellow-400 font-bold"></span></p>
+                </div>
+            </div>
+
+            <div class="glass p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-purple-300">🎨 מחולל תמונות AI</h2>
+                    <span class="upgrade-badge">UPGRADE 2</span>
+                </div>
+                <div id="ai-prompt-area" class="text-sm text-gray-400 italic p-3 bg-black/20 rounded-lg min-h-[80px]">
+                    ה-Prompt ליצירת תמונת פרסום יופיע כאן לאחר הסריקה...
+                </div>
+            </div>
+
+            <div class="glass p-6 md:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-green-300">📊 נתונים והתראות זהב</h2>
+                    <span class="upgrade-badge">UPGRADE 3</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div><p class="text-gray-400 text-xs">רווח צפוי</p><p id="profit" class="text-xl text-green-400 font-bold">$0.00</p></div>
+                    <div><p class="text-gray-400 text-xs">מוצרים</p><p class="text-xl text-blue-400 font-bold">0</p></div>
+                    <div><p class="text-gray-400 text-xs">ROAS</p><p class="text-xl text-purple-400 font-bold">0.0</p></div>
+                </div>
+                <div id="gold-alert" class="mt-4 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded text-center text-yellow-500 hidden font-bold">
+                    🌟 מצאנו מוצר זהב! נשלחה התראה לטלגרם.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runCycle() {
+            const niche = document.getElementById('nicheInput').value;
+            const res = await fetch('/run?niche=' + encodeURIComponent(niche), { method: 'POST' });
+            const data = await res.json();
+            
+            // עדכון הממשק עם השדרוגים (בדיקה מה הגיע מהשרת)
+            document.getElementById('sim-results').classList.remove('hidden');
+            document.getElementById('demand').innerText = Math.floor(Math.random() * 30 + 70) + "%"; // סימולציה
+            document.getElementById('comp').innerText = "Low-Medium";
+            
+            if (data.message.includes("Success")) {
+                document.getElementById('gold-alert').classList.remove('hidden');
+                document.getElementById('ai-prompt-area').innerText = "Professional studio lighting, cinematic shot of " + niche + ", 8k, highly detailed.";
+            }
+        }
+    </script>
+</body>
+</html>
