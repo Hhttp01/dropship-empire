@@ -164,3 +164,15 @@ function runSimulation(profit) {
     const monthlyProfit = weeklySales * 4 * profit;
     alert(`צפי מכירות שבועי: ${weeklySales} יחידות.\nרווח חודשי משוער: $${monthlyProfit.toFixed(2)}`);
 }
+// הוסף את הפונקציה הזו בתוך ה-script של inventory.html
+async function deleteProduct(id) {
+    if (confirm('האם למחוק את המוצר מהמלאי?')) {
+        await fetch(`/api/delete/${id}`, { method: 'DELETE' });
+        loadInventory(); // טעינה מחדש של הרשימה
+    }
+}
+
+// ושנה את שורת הכפתור בתוך ה-map לזה:
+<button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-400 text-[10px] font-bold uppercase mr-4">
+    Delete
+</button>
