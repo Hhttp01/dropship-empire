@@ -92,3 +92,35 @@ if (data.profit >= 25) {
         icon: "/static/icon.png"
     });
 }
+async function runCycle() {
+    const niche = document.getElementById('nicheInput').value;
+    const logContainer = document.getElementById('event-log');
+    
+    // שליחת בקשה לסריקה
+    const res = await fetch('/run?niche=' + encodeURIComponent(niche), { method: 'POST' });
+    const data = await res.json();
+    
+    // 1. הוספה ליומן האירועים (שדרוג 1)
+    const logEntry = document.createElement('div');
+    logEntry.className = "p-2 border-b border-white/5 text-xs animate-pulse";
+    
+    if (data.message.includes("Success")) {
+        logEntry.innerHTML = `✅ <span class="text-green-400">מוצר זהב נמצא!</span> ${niche} - רווח צפוי גבוה.`;
+        
+        // 2. הפעלת התראת דפדפן (שדרוג 2)
+        if (Notification.permission === "granted") {
+            new Notification("🌟 מוצר זהב נמצא!", {
+                body: `נמצאה הזדמנות רווחית עבור ${niche}`,
+            });
+        }
+    } else {
+        logEntry.innerHTML = `⚠️ סבב הושלם: הרווח עבור ${niche} לא עמד בסף המינימום.`;
+    }
+    
+    logContainer.prepend(logEntry); // מוסיף את ההתראה לראש הרשימה
+}
+
+// בקשת אישור להתראות דפדפן בטעינת הדף
+if (Notification.permission !== "denied") {
+    Notification.requestPermission();
+}
