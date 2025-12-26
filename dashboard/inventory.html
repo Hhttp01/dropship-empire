@@ -203,3 +203,11 @@ async function deleteProduct(id) {
         loadInventory(); // רענון הרשימה
     }
 }
+<div class="flex gap-4">
+    <button onclick="exportToCSV()" class="glass px-6 py-4 rounded-2xl text-xs font-bold text-green-400 border border-green-500/20 hover:bg-green-500/10 transition">
+        📥 EXPORT CSV
+    </button>
+    <button onclick="location.href='/'" class="glass px-8 py-4 rounded-2xl text-sm font-bold hover:bg-white/5 transition border border-white/10 uppercase tracking-widest">
+        ← Back to Command
+    </button>
+</div>
