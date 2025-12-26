@@ -1,123 +1,168 @@
 import os
 import sqlite3
 import random
-import uvicorn
-import openai
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+import asyncio
+from datetime import datetime
+from typing import List, Optional, Dict
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pytrends.request import TrendReq
-from dotenv import load_dotenv
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
+import uvicorn
 
-# --- אתחול והגדרות ---
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# --- קונפיגורציה ומבנה נתונים ---
+class EmpireConfig:
+    DB_NAME = "empire_vault.db"
+    DASHBOARD_DIR = "dashboard"
+    GOLDEN_PROFIT_THRESHOLD = 25.0
+    GOLDEN_DEMAND_THRESHOLD = 85
 
-app = FastAPI(title="EmpireOS All-in-One")
-app.mount("/static", StaticFiles(directory="dashboard"), name="static")
-templates = Jinja2Templates(directory="dashboard")
+app = FastAPI(title="EmpireOS - Main Controller v4.0")
 
-DB_PATH = 'empire_data.db'
+# וודא שתיקיית הממשק קיימת
+if not os.path.exists(EmpireConfig.DASHBOARD_DIR):
+    os.makedirs(EmpireConfig.DASHBOARD_DIR)
 
-# --- לוגיקה של בסיס הנתונים ---
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS products
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                  title TEXT, cost REAL, suggested_price REAL, 
-                  profit REAL, demand_score INTEGER,
-                  ai_prompt TEXT, ad_copy_he TEXT, ad_copy_en TEXT,
-                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
-    conn.commit()
-    conn.close()
+app.mount("/dashboard", StaticFiles(directory=EmpireConfig.DASHBOARD_DIR), name="dashboard")
 
-init_db()
+# --- מודלים של Pydantic ל-API ---
+class ProductSchema(BaseModel):
+    title: str
+    cost: float
+    suggested_price: float
+    profit: float
+    demand_score: int
+    competition: str
+    ad_budget: Optional[float] = 10.0
+    url: Optional[str] = "N/A"
 
-# --- לוגיקה עסקית (The Brain) ---
-class EmpireEngine:
+# --- מנוע מסד הנתונים (Database Controller) ---
+class DatabaseController:
     @staticmethod
-    def get_trends(keyword):
-        try:
-            pytrends = TrendReq(hl='en-US', tz=360)
-            pytrends.build_payload([keyword], cat=0, timeframe='now 7-d')
-            data = pytrends.interest_over_time()
-            return int(data[keyword].iloc[-1]) if not data.empty else random.randint(70, 90)
-        except:
-            return random.randint(65, 85)
+    def get_connection():
+        conn = sqlite3.connect(EmpireConfig.DB_NAME)
+        conn.row_factory = sqlite3.Row
+        return conn
 
-    @staticmethod
-    def generate_metrics(niche):
-        base_cost = random.uniform(12.0, 30.0)
-        shipping = 6.50
-        market_price = base_cost * random.uniform(2.8, 4.5)
-        fees = market_price * 0.08
-        profit = market_price - base_cost - shipping - fees
-        demand = EmpireEngine.get_trends(niche)
-        
-        return {
-            "title": f"Smart {niche.capitalize()} Ultra",
-            "cost": round(base_cost, 2),
-            "suggested_price": round(market_price, 2),
-            "profit": round(profit, 2),
-            "demand": demand,
-            "ebay_avg": round(market_price * 0.9, 2)
-        }
-
-# --- נתיבי API (Routes) ---
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.get("/inventory-page", response_class=HTMLResponse)
-async def inventory_page(request: Request):
-    return templates.TemplateResponse("inventory.html", {"request": request})
-
-@app.post("/run")
-async def run_analysis(niche: str):
-    try:
-        data = EmpireEngine.generate_metrics(niche)
-        
-        # בניית אובייקט לשמירה
-        ai_prompt = f"Professional studio shot of {niche}, cinematic lighting, 8k"
-        ad_he = f"הכירו את ה-{niche} החדש! איכות ללא פשרות."
-        ad_en = f"New {niche} is here. Premium quality guaranteed."
-
-        # שמירה ל-DB
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("""INSERT INTO products 
-                     (title, cost, suggested_price, profit, demand_score, ai_prompt, ad_copy_he, ad_copy_en) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                  (data['title'], data['cost'], data['suggested_price'], data['profit'], 
-                   data['demand'], ai_prompt, ad_he, ad_en))
+    @classmethod
+    def initialize(cls):
+        conn = cls.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS inventory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                cost REAL,
+                suggested_price REAL,
+                profit REAL,
+                demand_score INTEGER,
+                competition TEXT,
+                ad_budget REAL,
+                url TEXT,
+                timestamp TEXT,
+                is_golden INTEGER DEFAULT 0
+            )
+        ''')
         conn.commit()
         conn.close()
 
-        return {"status": "Success", "data": {**data, "ad_copy": {"he": ad_he, "en": ad_en}, "is_competitive": True}}
+DatabaseController.initialize()
+
+# --- לוגיקה עסקית (Business Logic Controller) ---
+class MarketIntelligence:
+    @staticmethod
+    def analyze_golden_opportunity(profit: float, demand: int) -> int:
+        if profit >= EmpireConfig.GOLDEN_PROFIT_THRESHOLD and demand >= EmpireConfig.GOLDEN_DEMAND_THRESHOLD:
+            return 1
+        return 0
+
+    @staticmethod
+    def generate_mock_scan(niche: str):
+        """סימולטור סריקה ליצירת נתונים ראשוניים"""
+        titles = [f"Premium {niche} Kit", f"Autonomous {niche} Tool", f"Digital {niche} Asset"]
+        title = random.choice(titles)
+        cost = round(random.uniform(5.0, 50.0), 2)
+        price = round(cost + random.uniform(20.0, 100.0), 2)
+        profit = round(price - cost, 2)
+        demand = random.randint(60, 98)
+        comp = random.choice(["Low", "Medium", "High"])
+        return {
+            "title": title, "cost": cost, "suggested_price": price,
+            "profit": profit, "demand_score": demand, "competition": comp,
+            "ad_budget": 15.0, "url": "https://example.com/source"
+        }
+
+# --- נתיבי API (The Main Controllers) ---
+
+@app.get("/api/inventory", response_class=JSONResponse)
+async def fetch_all_assets():
+    """שליפת כל הנכסים מהכספת"""
+    try:
+        conn = DatabaseController.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM inventory ORDER BY id DESC")
+        assets = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return assets
     except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "Error", "message": str(e)})
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/inventory")
-async def get_all_inventory():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("SELECT * FROM products ORDER BY id DESC")
-    rows = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return rows
-
-@app.delete("/api/delete/{p_id}")
-async def delete_item(p_id: int):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("DELETE FROM products WHERE id = ?", (p_id,))
+@app.post("/api/scan")
+async def register_new_asset(product: ProductSchema):
+    """רישום נכס חדש שנמצא בסריקה"""
+    is_gold = MarketIntelligence.analyze_golden_opportunity(product.profit, product.demand_score)
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    conn = DatabaseController.get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO inventory (title, cost, suggested_price, profit, demand_score, competition, ad_budget, url, timestamp, is_golden)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (product.title, product.cost, product.suggested_price, product.profit, 
+          product.demand_score, product.competition, product.ad_budget, product.url, timestamp, is_gold))
+    
+    new_id = cursor.lastrowid
     conn.commit()
     conn.close()
-    return {"status": "deleted"}
+    
+    return {"status": "Asset Secured", "id": new_id, "golden": bool(is_gold)}
 
+@app.get("/api/seed")
+async def seed_data():
+    """פקודה להזרקת נתוני ניסוי למערכת"""
+    mock_data = MarketIntelligence.generate_mock_scan("AI Tech")
+    p = ProductSchema(**mock_data)
+    await register_new_asset(p)
+    return {"message": "Mock data injected successfully"}
+
+@app.delete("/api/delete/{asset_id}")
+async def remove_asset(asset_id: int):
+    """מחיקת נכס מהמערכת"""
+    conn = DatabaseController.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM inventory WHERE id = ?", (asset_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "Asset Purged"}
+
+# --- נתיבי הגשת הממשק (View Controllers) ---
+
+@app.get("/")
+async def serve_dashboard():
+    return FileResponse(os.path.join(EmpireConfig.DASHBOARD_DIR, "index.html"))
+
+@app.get("/inventory")
+async def serve_inventory():
+    return FileResponse(os.path.join(EmpireConfig.DASHBOARD_DIR, "inventory.html"))
+
+# --- הפעלה ---
 if __name__ == "__main__":
+    print("""
+    #################################################
+    #             EMPIRE OS v4.0 RUNNING            #
+    #        ----------------------------------     #
+    #        GUI: http://localhost:8000             #
+    #        VAULT: http://localhost:8000/inventory #
+    #################################################
+    """)
     uvicorn.run(app, host="0.0.0.0", port=8000)
