@@ -1,4 +1,21 @@
-<!DOCTYPE html>
+<div class="card-glass p-6 rounded-3xl border-t-4 border-purple-500">
+    <h3 class="text-xs font-bold text-purple-400 uppercase mb-4">Market Benchmarking</h3>
+    <div class="flex justify-between items-center text-sm">
+        <span>מחיר ממוצע ב-eBay:</span>
+        <span id="ebay-price" class="font-bold text-white">--</span>
+    </div>
+    <div id="comp-status" class="mt-2 text-[10px] text-center p-1 rounded bg-white/5 uppercase"></div>
+</div>
+
+<div class="card-glass p-6 rounded-3xl mt-6 border-l-4 border-green-500">
+    <h3 class="text-xs font-bold text-green-400 uppercase mb-4">Social Ad Copy (AI)</h3>
+    <p id="ad-copy-he" class="text-xs text-gray-300 mb-2 leading-relaxed font-semibold"></p>
+    <p id="ad-copy-en" class="text-[10px] text-gray-500 italic"></p>
+</div>
+
+<button onclick="showMorningReport()" class="w-full mt-4 p-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-xs font-bold uppercase tracking-widest hover:bg-yellow-500/20 transition">
+    🌙 צפה בדו"ח סריקת לילה (Night Crawler)
+</button><!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
