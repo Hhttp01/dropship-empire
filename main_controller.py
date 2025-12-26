@@ -93,3 +93,47 @@ async def run_autonomous_cycle(self, niche):
         self.save_to_db(data)
         return {"status": "Success", "data": data}
     return {"status": "Failed", "message": "Low profit margin"}
+import random
+import sqlite3
+
+class EmpireController:
+    # ... (הגדרות קודמות) ...
+
+    def get_ebay_price(self, niche):
+        """שדרוג 1: השוואת מחירים גלובלית (סימולציה של eBay)"""
+        # המערכת בודקת מה המחיר הממוצע שבו המתחרים מוכרים
+        avg_market_price = random.uniform(35.0, 55.0)
+        return round(avg_market_price, 2)
+
+    def generate_ad_copy(self, niche, profit):
+        """שדרוג 2: מחולל מודעות פייסבוק/טיקטוק (עברית ואנגלית)"""
+        return {
+            "he": f"נמאס לך ממוצרים משעממים? הכירו את ה-{niche} החדש! איכות פרימיום במחיר ללא תחרות. המלאי מוגבל!",
+            "en": f"Stop scrolling! Get the best {niche} on the market. Limited time offer, shop now!"
+        }
+
+    async def night_crawler_scan(self):
+        """שדרוג 3: מצב סריקת לילה (מציג דו"ח בוקר בדאשבורד)"""
+        niches = ["Tech", "Home Decor", "Fitness", "Kitchen", "Pets"]
+        results = []
+        for n in niches:
+            data = self.get_market_data(n)
+            if data['profit'] > 25:
+                self.save_to_db(data)
+                results.append(data)
+        return results
+
+    async def run_autonomous_cycle(self, niche):
+        data = self.get_market_data(niche)
+        ebay_price = self.get_ebay_price(niche)
+        ad_copy = self.generate_ad_copy(niche, data['profit'])
+        
+        # שילוב הנתונים החדשים בתשובה
+        data['ebay_avg'] = ebay_price
+        data['ad_copy'] = ad_copy
+        data['is_competitive'] = data['suggested_price'] <= ebay_price
+        
+        if data['profit'] >= 20:
+            self.save_to_db(data)
+            return {"status": "Success", "data": data}
+        return {"status": "Failed", "message": "Low profit"}
