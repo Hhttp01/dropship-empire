@@ -211,3 +211,27 @@ async function deleteProduct(id) {
         ← Back to Command
     </button>
 </div>
+function exportToCSV() {
+    // שליפת הנתונים מהטבלה
+    const rows = Array.from(document.querySelectorAll('tr'));
+    let csvContent = "data:text/csv;charset=utf-8,Product,Price,Profit\n";
+
+    // מעבר על כל השורות (דילוג על הכותרת)
+    rows.slice(1).forEach(row => {
+        const cols = row.querySelectorAll('td');
+        if (cols.length > 0) {
+            const title = cols[0].innerText.split('\n')[0]; // שם המוצר
+            const price = cols[1].innerText.replace('Suggested\n', '');
+            const profit = cols[2].innerText.split('\n')[0];
+            csvContent += `${title},${price},${profit}\n`;
+        }
+    });
+
+    // יצירת קובץ להורדה
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "empire_inventory.csv");
+    document.body.appendChild(link);
+    link.click();
+}
