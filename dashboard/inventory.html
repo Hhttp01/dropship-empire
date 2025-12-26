@@ -3,51 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EmpireOS | Inventory Management</title>
+    <title>EmpireOS | Inventory Intelligence Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --accent: #3b82f6; --bg: #020617; }
-        body { 
-            background-color: var(--bg); 
-            color: #f8fafc; 
+        :root {
+            --accent: #3b82f6;
+            --bg: #020617;
+            --card: rgba(15, 23, 42, 0.6);
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #f1f5f9;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-image: radial-gradient(circle at 100% 0%, #1e1b4b 0%, transparent 50%);
+            background-image: 
+                radial-gradient(circle at 0% 0%, #1e1b4b 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, #1e1b4b 0%, transparent 40%);
+            background-attachment: fixed;
             min-height: 100vh;
         }
-        .glass { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .table-row:hover { background: rgba(255, 255, 255, 0.03); transform: scale(1.002); transition: all 0.2s; }
-        .badge-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
-        .gradient-text { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+        .font-space { font-family: 'Space Grotesk', sans-serif; }
+
+        /* Glassmorphism Classes */
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-hover:hover {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Table Styling */
+        .table-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade { animation: fadeIn 0.5s ease-out forwards; }
+
+        .badge-gold {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            color: #000;
+            font-weight: 800;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Simulation Modal Logic */
+        #simModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
-<body class="p-4 md:p-12">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <div>
-                <h1 class="text-4xl font-extrabold tracking-tighter italic uppercase">My <span class="gradient-text">Inventory</span></h1>
-                <p class="text-gray-500 text-sm mt-2 font-medium italic">ריכוז נכסים דיגיטליים ומוצרי זהב שאותרו</p>
+<body class="p-6 md:p-12 lg:p-16">
+
+    <div id="simModal">
+        <div class="glass p-8 rounded-[2rem] max-w-md w-full border border-blue-500/30">
+            <h2 class="text-2xl font-bold mb-4 font-space gradient-text uppercase">Empire Growth Report</h2>
+            <div id="simContent" class="space-y-4 text-gray-300"></div>
+            <button onclick="closeModal()" class="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition">CLOSE ANALYSIS</button>
+        </div>
+    </div>
+
+    <div class="max-w-[1400px] mx-auto">
+        
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-16">
+            <div class="animate-fade">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="h-2 w-12 bg-blue-500 rounded-full"></span>
+                    <span class="text-blue-500 font-bold tracking-[0.3em] text-xs uppercase">Management Suite</span>
+                </div>
+                <h1 class="text-5xl md:text-6xl font-black font-space tracking-tighter uppercase italic">
+                    Asset <span class="gradient-text">Inventory</span>
+                </h1>
+                <p class="text-gray-500 mt-3 text-lg font-medium italic">מעקב אחר נכסים דיגיטליים, אופטימיזציית רווחים ושיגור מודעות</p>
             </div>
-            <div class="flex gap-4">
-                <button onclick="exportToCSV()" class="glass px-6 py-4 rounded-2xl text-xs font-bold text-green-400 border border-green-500/20 hover:bg-green-500/10 transition uppercase tracking-widest">
-                    📥 Export CSV
+
+            <div class="flex flex-wrap gap-4 animate-fade" style="animation-delay: 0.1s">
+                <button onclick="exportToCSV()" class="glass-hover glass px-8 py-4 rounded-2xl text-xs font-bold text-green-400 uppercase tracking-widest flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Export Assets
                 </button>
-                <button onclick="location.href='/'" class="glass px-8 py-4 rounded-2xl text-sm font-bold hover:bg-white/5 transition border border-white/10 uppercase tracking-widest">
-                    ← Back to Command
+                <button onclick="location.href='/'" class="glass-hover glass px-8 py-4 rounded-2xl text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Command Hub
                 </button>
             </div>
         </div>
 
-        <div class="glass rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl">
-            <div class="overflow-x-auto scrollbar-hide">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 animate-fade" style="animation-delay: 0.2s">
+            <div class="glass p-8 rounded-[2rem]">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Total Assets</p>
+                <h3 id="stat-count" class="text-4xl font-bold font-space text-white">0</h3>
+                <div class="mt-4 h-1 w-full bg-blue-500/20 rounded-full overflow-hidden">
+                    <div class="h-full bg-blue-500 w-2/3"></div>
+                </div>
+            </div>
+            <div class="glass p-8 rounded-[2rem]">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Est. Monthly Profit</p>
+                <h3 id="stat-profit" class="text-4xl font-bold font-space text-green-400">$0</h3>
+                <p class="text-[10px] text-gray-600 mt-2 uppercase italic">Based on 45 units/mo avg</p>
+            </div>
+            <div class="glass p-8 rounded-[2rem]">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Market Confidence</p>
+                <h3 id="stat-demand" class="text-4xl font-bold font-space text-purple-400">0%</h3>
+                <p class="text-[10px] text-gray-600 mt-2 uppercase italic">Real-time Trend Index</p>
+            </div>
+            <div class="glass p-8 rounded-[2rem]">
+                <p class="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Ads Allocated</p>
+                <h3 id="stat-ads" class="text-4xl font-bold font-space text-blue-400">$0</h3>
+                <p class="text-[10px] text-gray-600 mt-2 uppercase italic">Reserved Test Budget</p>
+            </div>
+        </div>
+
+        <div class="glass rounded-[3rem] overflow-hidden border border-white/5 shadow-2xl animate-fade" style="animation-delay: 0.3s">
+            <div class="table-container overflow-x-auto">
                 <table class="w-full text-right border-collapse">
                     <thead>
-                        <tr class="bg-white/5 text-gray-400 text-[10px] uppercase tracking-[0.2em] font-bold">
-                            <th class="p-6">Product Intelligence</th>
-                            <th class="p-6 text-center">Cost Analysis</th>
-                            <th class="p-6 text-center">Net Profit</th>
-                            <th class="p-6 text-left">Control</th>
+                        <tr class="bg-white/5 text-gray-400 text-[10px] uppercase tracking-[0.25em] font-bold">
+                            <th class="p-8 text-right min-w-[300px]">Product Intelligence</th>
+                            <th class="p-8 text-center">Financials</th>
+                            <th class="p-8 text-center">Market Strength</th>
+                            <th class="p-8 text-center">AI Creative</th>
+                            <th class="p-8 text-left">Control</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryBody" class="divide-y divide-white/5">
@@ -55,261 +165,210 @@
                 </table>
             </div>
 
-            <div id="loader" class="p-24 text-center">
-                <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-                <p class="text-gray-500 font-mono text-sm tracking-widest uppercase">Synchronizing with Database...</p>
+            <div id="loader" class="p-32 text-center">
+                <div class="relative inline-block w-16 h-16 mb-6">
+                    <div class="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <p class="text-gray-500 font-mono text-xs uppercase tracking-[0.3em]">Querying Local Database Intelligence...</p>
             </div>
         </div>
+
+        <footer class="mt-12 text-center text-gray-600 text-[10px] uppercase tracking-widest">
+            EmpireOS v4.0 Autonomous Management System &copy; 2025 | All Rights Reserved
+        </footer>
     </div>
 
     <script>
         /**
-         * טעינת המלאי מה-API של השרת
+         * הלב של המערכת - טעינת נתונים ועיבודם
          */
         async function loadInventory() {
             try {
-                const res = await fetch('/api/inventory');
-                const data = await res.json();
-                const body = document.getElementById('inventoryBody');
+                const response = await fetch('/api/inventory');
+                const products = await response.json();
+                const tableBody = document.getElementById('inventoryBody');
                 const loader = document.getElementById('loader');
 
-                if (data && data.length > 0) {
-                    loader.classList.add('hidden');
-                    body.innerHTML = data.map(p => `
-                        <tr class="table-row transition-all duration-300">
-                            <td class="p-6">
-                                <div class="font-bold text-white text-lg">${p.title}</div>
-                                <div class="text-[10px] text-blue-400/60 font-mono mt-1 uppercase tracking-wider">
-                                    ID: #${p.id} | Score: ${p.demand_score || '85'}%
-                                </div>
-                            </td>
-                            <td class="p-6 text-center font-mono">
-                                <div class="text-[10px] text-gray-500 uppercase">Target Sale</div>
-                                <div class="text-white font-bold text-lg">$${p.suggested_price}</div>
-                                <div class="text-[9px] text-gray-600 mt-1 uppercase">Cost: $${p.cost || '0.00'}</div>
-                            </td>
-                            <td class="p-6 text-center">
-                                <div class="text-green-400 font-extrabold text-2xl tracking-tighter">$${p.profit}</div>
-                                ${p.profit > 25 ? '<span class="badge-gold">GOLD OPPORTUNITY</span>' : ''}
-                            </td>
-                            <td class="p-6 text-left space-x-2 space-x-reverse">
-                                <button onclick="runSimulation(${p.profit})" class="text-blue-400 hover:text-blue-300 text-[10px] font-bold uppercase border border-blue-500/20 px-4 py-2 rounded-xl transition-all">
-                                    Simulate
-                                </button>
-                                <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-400 text-[10px] font-bold uppercase border border-red-500/20 px-4 py-2 rounded-xl transition-all">
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('');
+                if (products && products.length > 0) {
+                    loader.style.display = 'none';
+                    updateDashboardStats(products);
+                    
+                    tableBody.innerHTML = products.map((item, index) => {
+                        const isGold = item.profit > 25 && item.demand_score > 85;
+                        const adCopy = item.ad_copy_he || "קופי למודעה בייצור...";
+                        
+                        return `
+                            <tr class="table-row group transition-all duration-500 hover:bg-white/[0.02]">
+                                <td class="p-8">
+                                    <div class="flex items-center gap-4">
+                                        <div class="h-12 w-12 rounded-2xl glass flex items-center justify-center font-bold text-blue-400 font-space border-blue-500/20 group-hover:border-blue-500/50 transition-colors">
+                                            ${item.title.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-white text-xl font-space tracking-tight leading-none">${item.title}</div>
+                                            <div class="flex items-center gap-2 mt-2">
+                                                <span class="text-[10px] text-gray-500 font-mono">#${item.id}</span>
+                                                <span class="h-1 w-1 bg-gray-700 rounded-full"></span>
+                                                <span class="text-[10px] text-blue-400/60 font-mono uppercase tracking-tighter">${item.timestamp}</span>
+                                            </div>
+                                            ${item.url && item.url !== 'N/A' ? 
+                                                `<a href="${item.url}" target="_blank" class="text-[9px] text-gray-600 hover:text-blue-400 italic mt-2 block transition-colors">🔗 View Original Source</a>` : 
+                                                ''}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-8 text-center font-mono">
+                                    <div class="space-y-1">
+                                        <div class="text-[10px] text-gray-600 uppercase tracking-tighter">Selling Price</div>
+                                        <div class="text-white font-bold text-lg">$${item.suggested_price}</div>
+                                        <div class="text-[9px] text-gray-500">Net Cost: $${item.cost}</div>
+                                    </div>
+                                </td>
+                                <td class="p-8 text-center">
+                                    <div class="inline-flex flex-col items-center p-3 rounded-2xl bg-white/5 border border-white/5 min-w-[120px]">
+                                        <div class="text-[10px] font-bold ${item.demand_score > 80 ? 'text-purple-400' : 'text-gray-400'} uppercase">Demand: ${item.demand_score}%</div>
+                                        <div class="w-full bg-white/10 h-1 rounded-full mt-2 overflow-hidden">
+                                            <div class="bg-purple-500 h-full" style="width: ${item.demand_score}%"></div>
+                                        </div>
+                                        <div class="text-[9px] mt-2 font-bold uppercase tracking-widest ${item.competition === 'Low' ? 'text-green-500' : 'text-yellow-500'}">
+                                            ${item.competition} Comp
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-8 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="text-green-400 font-black text-3xl font-space leading-none">$${item.profit}</div>
+                                        <div class="text-[9px] text-gray-500 uppercase mt-1 tracking-widest italic">Profit / Unit</div>
+                                        ${isGold ? '<span class="badge-gold px-2 py-0.5 mt-2 rounded-md text-[9px] tracking-tighter">ULTRA GOLD PRODUCT</span>' : ''}
+                                    </div>
+                                </td>
+                                <td class="p-8 text-left">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <button onclick="runAdvancedSim(${JSON.stringify(item).replace(/"/g, '&quot;')})" 
+                                                class="glass-hover px-4 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-widest text-blue-400 border border-blue-500/20">
+                                            Sim
+                                        </button>
+                                        <button onclick="deleteAsset(${item.id})" 
+                                                class="glass-hover px-4 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-widest text-red-500 border border-red-500/20">
+                                            Del
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
                 } else {
                     loader.innerHTML = `
-                        <div class="py-10">
-                            <p class="text-gray-600 font-mono text-xs uppercase tracking-[0.2em]">No products found in system database.</p>
-                            <button onclick="location.href='/'" class="mt-4 text-blue-500 text-xs font-bold underline italic">Start AI Scan</button>
-                        </div>`;
+                        <div class="text-gray-600 font-mono py-12">
+                            <p class="text-sm uppercase mb-4 tracking-[0.4em]">Inventory Empty</p>
+                            <button onclick="location.href='/'" class="text-blue-500 font-bold border-b border-blue-500/30 hover:text-blue-400 transition">LAUNCH FIRST SCAN</button>
+                        </div>
+                    `;
                 }
-            } catch (e) {
-                console.error("Critical Sync Error:", e);
-                document.getElementById('loader').innerHTML = '<span class="text-red-500 font-bold uppercase tracking-widest italic">⚠️ Database Connection Lost</span>';
+            } catch (error) {
+                console.error("Database Sync Error:", error);
+                document.getElementById('loader').innerHTML = '<span class="text-red-500 font-bold font-mono">⚠️ DATABASE SYNC FAILED. CHECK SERVER STATUS.</span>';
             }
         }
 
         /**
-         * מחיקת מוצר מה-Database
+         * עדכון כרטיסי הסטטיסטיקה למעלה
          */
-        async function deleteProduct(id) {
-            if (confirm('בטוח שברצונך למחוק את המוצר לצמיתות?')) {
+        function updateDashboardStats(data) {
+            document.getElementById('stat-count').innerText = data.length;
+            
+            const totalProfit = data.reduce((sum, p) => sum + p.profit, 0);
+            const avgProfit = (totalProfit * 45).toLocaleString(); // הערכה לפי 45 מכירות בחודש
+            document.getElementById('stat-profit').innerText = `$${avgProfit}`;
+            
+            const avgDemand = data.reduce((sum, p) => sum + p.demand_score, 0) / data.length;
+            document.getElementById('stat-demand').innerText = `${Math.round(avgDemand)}%`;
+
+            const totalAds = data.reduce((sum, p) => sum + (p.ad_budget || 0), 0);
+            document.getElementById('stat-ads').innerText = `$${totalAds.toLocaleString()}`;
+        }
+
+        /**
+         * סימולציה מתקדמת עם מודל נתונים
+         */
+        function runAdvancedSim(item) {
+            const modal = document.getElementById('simModal');
+            const content = document.getElementById('simContent');
+            
+            // לוגיקה פנימית לסימולציה
+            const conversionRate = (item.demand_score / 100) * 0.05; // בין 2% ל-5% המרה
+            const clicks = Math.floor(item.ad_budget / 0.8); // נניח 0.8$ לקליק
+            const projectedSales = Math.floor(clicks * conversionRate);
+            const netProfit = (projectedSales * item.profit).toFixed(2);
+
+            content.innerHTML = `
+                <div class="space-y-4 font-mono text-sm">
+                    <div class="flex justify-between border-b border-white/5 pb-2">
+                        <span>Product Title:</span> <span class="text-white">${item.title}</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/5 pb-2">
+                        <span>Ad Spend (Test):</span> <span class="text-blue-400">$${item.ad_budget || 0}</span>
+                    </div>
+                    <div class="flex justify-between border-b border-white/5 pb-2">
+                        <span>Projected Sales:</span> <span class="text-white">${projectedSales} units</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg pt-4">
+                        <span>Net ROI Potential:</span> <span class="text-green-400">$${netProfit}</span>
+                    </div>
+                    <p class="text-[10px] text-gray-500 italic mt-4">
+                        * הסימולציה מבוססת על יחס המרה של ${(conversionRate*100).toFixed(1)}% ועלות קליק ממוצעת של $0.80.
+                    </p>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('simModal').style.display = 'none';
+        }
+
+        /**
+         * מחיקת נכס
+         */
+        async function deleteAsset(id) {
+            if (confirm('מחיקה לצמיתות מה-Database המרכזי?')) {
                 try {
                     const res = await fetch(`/api/delete/${id}`, { method: 'DELETE' });
-                    if (res.ok) {
-                        loadInventory(); // רענון הרשימה
-                    } else {
-                        alert("שגיאה במחיקת המוצר מהשרת");
-                    }
-                } catch (e) {
-                    console.error("Delete failed:", e);
-                }
+                    if (res.ok) loadInventory();
+                } catch (e) { alert("Error deleting asset"); }
             }
         }
 
         /**
-         * סימולציית רווחים שבועית/חודשית
-         */
-        function runSimulation(profit) {
-            const weeklySales = Math.floor(Math.random() * 35) + 15;
-            const monthlyProfit = (weeklySales * 4 * profit).toLocaleString();
-            alert(`
-📊 סימולציית פוטנציאל שוק
----------------------------
-צפי מכירות שבועי: ${weeklySales} יחידות
-רווח חודשי משוער: $${monthlyProfit}
----------------------------
-*הנתונים מבוססים על רמת ביקוש נוכחית`);
-        }
-
-        /**
-         * ייצוא המלאי לקובץ CSV
+         * ייצוא CSV מלא כולל נתונים מורחבים
          */
         function exportToCSV() {
-            const rows = Array.from(document.querySelectorAll('tr'));
-            if (rows.length <= 1) return alert("אין נתונים לייצוא כרגע");
+            const rows = Array.from(document.querySelectorAll('tr')).slice(1);
+            if (rows.length === 0) return alert("Inventory empty");
             
-            let csvContent = "data:text/csv;charset=utf-8,ID,Product Name,Market Price,Net Profit\n";
-            
-            rows.slice(1).forEach(row => {
+            let csv = "ID,Product Name,Net Profit,Competition,Demand Score,Selling Price,Cost\n";
+            rows.forEach(row => {
                 const cols = row.querySelectorAll('td');
-                const title = cols[0].querySelector('.text-lg').innerText;
-                const id = cols[0].querySelector('.text-blue-400\\/60').innerText.replace('ID: #', '').split(' |')[0];
-                const price = cols[1].querySelector('.text-white').innerText.replace('$', '');
-                const profit = cols[2].querySelector('.text-green-400').innerText.replace('$', '');
-                csvContent += `${id},"${title}",${price},${profit}\n`;
+                const title = cols[0].querySelector('.text-xl').innerText;
+                const id = cols[0].querySelector('.text-[10px]').innerText.replace('#', '');
+                const profit = cols[3].querySelector('.text-green-400').innerText.replace('$', '');
+                const competition = cols[2].querySelector('.text-[9px].font-bold').innerText;
+                const price = cols[1].querySelector('.text-lg').innerText.replace('$', '');
+                const cost = cols[1].querySelector('.text-[9px]').innerText.replace('Net Cost: $', '');
+                
+                csv += `${id},"${title}",${profit},${competition.replace('Comp', '')},${price},${cost}\n`;
             });
 
-            const encodedUri = encodeURI(csvContent);
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `EmpireOS_Inventory_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.download = `EmpireOS_Asset_Report_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
-            document.body.removeChild(link);
         }
 
-        // הפעלה ראשונית בטעינת הדף
-        window.onload = loadInventory;
-    </script>
-</body>
-</html>        
-        window.onload = loadInventory;
-    </script>
-</body>
-</html>                    <tbody id="inventoryBody" class="divide-y divide-white/5 font-medium">
-                        </tbody>
-                </table>
-            </div>
-            <div id="loader" class="p-20 text-center text-gray-600 animate-pulse">טוען נתונים מסימולציית השוק...</div>
-        </div>
-    </div>
-
-    <script>
-        async function loadInventory() {
-            try {
-                const res = await fetch('/api/inventory');
-                const data = await res.json();
-                const body = document.getElementById('inventoryBody');
-                const loader = document.getElementById('loader');
-
-                if (data.length > 0) {
-                    loader.style.display = 'none';
-                    body.innerHTML = data.map(p => `
-                        <tr class="table-row transition-all">
-                            <td class="p-6">
-                                <div class="font-bold text-white">${p.title}</div>
-                                <div class="text-[10px] text-gray-500 mt-1">${p.timestamp || 'סריקה אחרונה'}</div>
-                            </td>
-                            <td class="p-6 text-sm text-gray-400">
-                                <div>ספק: $${p.cost}</div>
-                                <div class="text-blue-400 font-bold">מכירה: $${p.suggested_price}</div>
-                            </td>
-                            <td class="p-6">
-                                <span class="text-green-400 font-bold">$${p.profit}</span>
-                                ${p.profit > 25 ? '<span class="badge-gold mr-2">GOLD</span>' : ''}
-                            </td>
-                            <td class="p-6 text-[10px]">
-                                <span class="flex items-center gap-2">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
-                                    ממתין להעלאה
-                                </span>
-                            </td>
-                            <td class="p-6">
-                                <button class="text-blue-500 hover:text-blue-400 text-xs font-bold uppercase tracking-widest">ערוך קריאייטיב</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                } else {
-                    loader.innerText = "אין מוצרים במלאי כרגע. הפעל סריקה בדף הראשי.";
-                }
-            } catch (e) {
-                console.error("Error loading inventory:", e);
-            }
-        }
         window.onload = loadInventory;
     </script>
 </body>
 </html>
-function runSimulation(profit) {
-    const weeklySales = Math.floor(Math.random() * 50) + 10;
-    const monthlyProfit = weeklySales * 4 * profit;
-    alert(`צפי מכירות שבועי: ${weeklySales} יחידות.\nרווח חודשי משוער: $${monthlyProfit.toFixed(2)}`);
-}
-// הוסף את הפונקציה הזו בתוך ה-script של inventory.html
-async function deleteProduct(id) {
-    if (confirm('האם למחוק את המוצר מהמלאי?')) {
-        await fetch(`/api/delete/${id}`, { method: 'DELETE' });
-        loadInventory(); // טעינה מחדש של הרשימה
-    }
-}
-
-// ושנה את שורת הכפתור בתוך ה-map לזה:
-<button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-400 text-[10px] font-bold uppercase mr-4">
-    Delete
-</button>
-body.innerHTML = data.map(p => `
-    <tr class="table-row">
-        <td class="p-6">
-            <div class="font-bold text-white text-lg">${p.title}</div>
-            <div class="text-[10px] text-blue-400/60">ID: #${p.id}</div>
-        </td>
-        <td class="p-6 text-center font-mono">
-            <div class="text-white font-bold">$${p.suggested_price}</div>
-        </td>
-        <td class="p-6 text-center text-green-400 font-bold">$${p.profit}</td>
-        <td class="p-6 text-left space-x-2 space-x-reverse">
-            <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-400 text-[10px] font-bold uppercase border border-red-500/20 px-3 py-1 rounded-lg">
-                Delete
-            </button>
-            <button class="text-blue-400 text-[10px] font-bold uppercase border border-blue-500/20 px-3 py-1 rounded-lg">
-                Details
-            </button>
-        </td>
-    </tr>
-`).join('');
-
-async function deleteProduct(id) {
-    if (confirm('למחוק מוצר זה מהמערכת?')) {
-        await fetch(`/api/delete/${id}`, { method: 'DELETE' });
-        loadInventory(); // רענון הרשימה
-    }
-}
-<div class="flex gap-4">
-    <button onclick="exportToCSV()" class="glass px-6 py-4 rounded-2xl text-xs font-bold text-green-400 border border-green-500/20 hover:bg-green-500/10 transition">
-        📥 EXPORT CSV
-    </button>
-    <button onclick="location.href='/'" class="glass px-8 py-4 rounded-2xl text-sm font-bold hover:bg-white/5 transition border border-white/10 uppercase tracking-widest">
-        ← Back to Command
-    </button>
-</div>
-function exportToCSV() {
-    // שליפת הנתונים מהטבלה
-    const rows = Array.from(document.querySelectorAll('tr'));
-    let csvContent = "data:text/csv;charset=utf-8,Product,Price,Profit\n";
-
-    // מעבר על כל השורות (דילוג על הכותרת)
-    rows.slice(1).forEach(row => {
-        const cols = row.querySelectorAll('td');
-        if (cols.length > 0) {
-            const title = cols[0].innerText.split('\n')[0]; // שם המוצר
-            const price = cols[1].innerText.replace('Suggested\n', '');
-            const profit = cols[2].innerText.split('\n')[0];
-            csvContent += `${title},${price},${profit}\n`;
-        }
-    });
-
-    // יצירת קובץ להורדה
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "empire_inventory.csv");
-    document.body.appendChild(link);
-    link.click();
-}
