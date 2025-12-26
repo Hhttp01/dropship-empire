@@ -103,3 +103,23 @@ async def get_inventory_data():
 async def delete_item(product_id: int):
     controller.delete_from_db(product_id)
     return {"message": "Deleted successfully"}
+# נתיב למחיקת מוצר
+@app.delete("/api/delete/{product_id}")
+async def delete_product(product_id: int):
+    try:
+        controller.delete_product(product_id)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# נתיב לקבלת כל המלאי (מוודא שהוא מחזיר את כל השדות)
+@app.get("/api/inventory")
+async def get_inventory():
+    import sqlite3
+    conn = sqlite3.connect('empire_data.db')
+    conn.row_factory = sqlite3.Row # מאפשר גישה לפי שם עמודה
+    c = conn.cursor()
+    c.execute("SELECT * FROM products ORDER BY id DESC")
+    rows = c.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
