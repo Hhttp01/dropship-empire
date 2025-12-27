@@ -1,173 +1,340 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EmpireOS | Autonomous Control</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --accent: #3b82f6; --bg: #020617; }
-        body { 
-            background-color: var(--bg); color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif;
-            background-image: radial-gradient(circle at 0% 0%, #1e1b4b 0%, transparent 50%), radial-gradient(circle at 100% 100%, #0f172a 0%, transparent 50%);
-            min-height: 100vh;
-        }
-        .glass { background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .neon-btn { background: linear-gradient(135deg, #2563eb, #7c3aed); transition: all 0.3s ease; }
-        .neon-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); }
-        .gradient-text { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    </style>
-</head>
-<body class="p-4 md:p-12">
-    <div class="max-w-7xl mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-            <h1 class="text-4xl font-extrabold italic">EMPIRE<span class="gradient-text">OS</span></h1>
-            <nav class="flex gap-4">
-                <button onclick="location.href='/inventory-page'" class="glass px-6 py-3 rounded-2xl text-sm font-semibold border border-white/10 hover:bg-white/5 transition">📦 המלאי שלי</button>
-                <div class="glass px-6 py-3 rounded-2xl border border-blue-500/20 text-blue-400 font-mono" id="live-clock">00:00:00</div>
-            </nav>
-        </header>
+import os
+import sqlite3
+import random
+import uvicorn
+import openai
+import requests
+import logging
+import asyncio
+import json
+import sys
+import shutil
+import time
+import uuid
+from datetime import datetime
+from typing import List, Optional, Dict, Any, Union, Tuple
+from bs4 import BeautifulSoup
+from fastapi import FastAPI, Request, Query, HTTPException, BackgroundTasks, Depends
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field, validator
+from pytrends.request import TrendReq
+from dotenv import load_dotenv
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div class="lg:col-span-8 space-y-8">
-                <div class="glass p-10 rounded-[2.5rem] border border-white/10">
-                    <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">🎯 סריקת שוק גלובלי</h2>
-                    <div class="relative">
-                        <input type="text" id="nicheInput" placeholder="הזן נישה (למשל: Eco-Gadgets)..." 
-                            class="w-full bg-black/40 border border-white/10 p-6 rounded-2xl outline-none focus:border-blue-500/50 text-xl">
-                        <button onclick="runCycle()" class="absolute left-3 top-3 bottom-3 neon-btn px-10 rounded-xl font-bold text-white">הפעל AI</button>
-                    </div>
+# =================================================================
+# 1. ENVIRONMENT & GLOBAL CONFIGURATION
+# =================================================================
+load_dotenv()
 
-                    <div id="market-insight" class="hidden mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-blue-500/5 border border-blue-500/10 p-5 rounded-2xl text-center">
-                            <p class="text-[10px] uppercase text-blue-400 mb-1">ביקוש (Trends)</p>
-                            <p id="demand-val" class="text-3xl font-bold">--</p>
-                        </div>
-                        <div class="bg-purple-500/5 border border-purple-500/10 p-5 rounded-2xl text-center">
-                            <p class="text-[10px] uppercase text-purple-400 mb-1">מחיר eBay ממוצע</p>
-                            <p id="ebay-price" class="text-3xl font-bold">--</p>
-                        </div>
-                        <div id="comp-status" class="bg-green-500/5 border border-green-500/10 p-5 rounded-2xl text-center flex items-center justify-center font-bold text-xs">
-                            ממתין לנתונים...
-                        </div>
-                    </div>
-                </div>
+class SystemConstants:
+    """קבועי מערכת - ניהול הגדרות במקום מרכזי אחד"""
+    APP_NAME = "EmpireOS Grand Master"
+    VERSION = "11.0.4-ELITE"
+    DB_PATH = 'empire_vault_final.db'
+    LOG_FILE = "system_runtime.log"
+    
+    # Filesystem Architecture
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    STATIC_DIR = os.path.join(BASE_DIR, "dashboard")
+    IMG_OUTPUT = os.path.join(STATIC_DIR, "assets", "generated")
+    LOG_DIR = os.path.join(BASE_DIR, "logs")
+    
+    # Financial Algorithm Parameters
+    BASE_SHIPPING = 5.95
+    MARKETING_TAX_ESTIMATE = 0.15  # 15% estimated tax/fees
+    ADS_TEST_MULTIPLIER = 3.0
+    MIN_PROFIT_FOR_GOLD = 25.0
+    MIN_DEMAND_FOR_GOLD = 80
+    
+    # Automation & Scanning
+    SCAN_COOLDOWN = 14400  # 4 Hours in seconds
+    TREND_STALENESS_LIMIT = 86400  # 24 hours
 
-                <div class="glass p-8 rounded-[2.5rem]">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-6 italic">System Log</h3>
-                    <div id="event-log" class="space-y-4 h-48 overflow-y-auto pr-4 font-mono text-xs">
-                        <div class="opacity-50">ממתין לפקודה...</div>
-                    </div>
-                </div>
-            </div>
+# Initialization of Physical Infrastructure
+for path in [SystemConstants.STATIC_DIR, SystemConstants.IMG_OUTPUT, SystemConstants.LOG_DIR]:
+    os.makedirs(path, exist_ok=True)
 
-            <div class="lg:col-span-4 space-y-6">
-                <div class="glass p-8 rounded-[2.5rem] border-t-4 border-green-500">
-                    <h3 class="text-sm font-bold text-green-400 uppercase mb-4">Ad Copy (AI)</h3>
-                    <div id="ad-copy-he" class="text-sm text-gray-300 font-semibold mb-4 leading-relaxed"></div>
-                    <div id="ad-copy-en" class="text-[10px] text-gray-500 italic"></div>
-                </div>
+# Advanced Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)-8s | [%(name)s] %(message)s',
+    handlers=[
+        logging.FileHandler(os.path.join(SystemConstants.LOG_DIR, SystemConstants.LOG_FILE)),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger("EmpireCore")
 
-                <div id="gold-alert" class="hidden glass p-6 rounded-3xl border-2 border-yellow-500/30 bg-yellow-500/5 animate-pulse text-yellow-500 font-bold text-center">
-                    🌟 הזדמנות זהב נמצאה!
-                </div>
-            </div>
-        </div>
-    </div>
+app = FastAPI(title=SystemConstants.APP_NAME, version=SystemConstants.VERSION)
+app.mount("/static", StaticFiles(directory=SystemConstants.STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=SystemConstants.STATIC_DIR)
 
-    <script>
-        setInterval(() => { document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('he-IL'); }, 1000);
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-        async function runCycle() {
-            const niche = document.getElementById('nicheInput').value;
-            const log = document.getElementById('event-log');
-            if (!niche) return;
+# =================================================================
+# 2. DATABASE LAYER (PRO-LEVEL ORM)
+# =================================================================
+class DatabaseGateway:
+    """שער הגישה למסד הנתונים - כולל ניהול הקשרים ושאילתות מורכבות"""
+    
+    @staticmethod
+    def get_db():
+        conn = sqlite3.connect(SystemConstants.DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
 
-            log.innerHTML = `<div class="text-blue-400">⚡ סורק נתונים עבור "${niche}"...</div>` + log.innerHTML;
+    @classmethod
+    def setup_schema(cls):
+        """פריסת סכמת מסד הנתונים המלאה"""
+        logger.info("Deploying Database Schema...")
+        with cls.get_db() as conn:
+            # Inventory Table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS inventory (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    uuid TEXT UNIQUE,
+                    title TEXT NOT NULL,
+                    niche TEXT,
+                    purchase_cost REAL,
+                    retail_price REAL,
+                    net_profit REAL,
+                    demand_index INTEGER,
+                    competition_level TEXT,
+                    marketing_budget REAL,
+                    source_url TEXT,
+                    ai_visual_prompt TEXT,
+                    ad_copy_local TEXT,
+                    image_url_local TEXT,
+                    is_golden_opportunity INTEGER DEFAULT 0,
+                    discovery_method TEXT,
+                    trend_velocity TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            # Alerts & Events Table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS system_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_type TEXT,
+                    severity TEXT,
+                    payload TEXT,
+                    is_processed INTEGER DEFAULT 0,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            # Analytics Snapshots
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS daily_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    total_assets INTEGER,
+                    potential_revenue REAL,
+                    date_key TEXT UNIQUE
+                )
+            ''')
+            conn.commit()
+
+DatabaseGateway.setup_schema()
+
+# =================================================================
+# 3. INTELLIGENCE & AI MODULES
+# =================================================================
+class AIContentEngine:
+    """מנוע ייצור תוכן - תמונות, קופי ופרומפטים"""
+    
+    @staticmethod
+    async def generate_dalle_image(product_id: int, prompt: str) -> Optional[str]:
+        """מחולל תמונה באמצעות DALL-E 3 ושומר אותה מקומית"""
+        if not openai.api_key:
+            logger.error("DALL-E request aborted: Missing API Key.")
+            return None
+
+        try:
+            logger.info(f"Initiating AI Image Generation for ID: {product_id}")
+            # Running synchronous OpenAI call in a thread to keep FastAPI async
+            response = await asyncio.to_thread(
+                openai.Image.create,
+                prompt=prompt,
+                n=1,
+                size="1024x1024",
+                quality="standard"
+            )
             
-            try {
-                const res = await fetch(`/run?niche=${encodeURIComponent(niche)}`, { method: 'POST' });
-                const result = await res.json();
-                
-                if (result.status === "Success") {
-                    const data = result.data;
-                    document.getElementById('market-insight').classList.remove('hidden');
-                    document.getElementById('demand-val').innerText = data.demand + "%";
-                    document.getElementById('ebay-price').innerText = "$" + data.ebay_avg;
-                    
-                    const comp = document.getElementById('comp-status');
-                    comp.innerText = data.is_competitive ? "🔥 מחיר תחרותי" : "⚠️ מחיר גבוה";
-                    comp.className = data.is_competitive ? "text-green-400" : "text-red-400";
-
-                    document.getElementById('ad-copy-he').innerText = data.ad_copy.he;
-                    document.getElementById('ad-copy-en').innerText = data.ad_copy.en;
-                    document.getElementById('gold-alert').classList.remove('hidden');
-                    
-                    log.innerHTML = `<div class="text-green-400 font-bold">✅ נמצא מוצר רווחי ($${data.profit} רווח)</div>` + log.innerHTML;
-                } else {
-                    log.innerHTML = `<div class="text-red-400">❌ סריקה נכשלה: ${result.message}</div>` + log.innerHTML;
-                }
-            } catch (e) {
-                log.innerHTML = `<div class="text-red-500">⚠️ שגיאת שרת</div>` + log.innerHTML;
-            }
-        }
-    </script>
-</body>
-</html>
-                <div id="gold-alert" class="hidden glass p-6 rounded-3xl border-2 border-yellow-500/30 bg-yellow-500/5 animate-pulse">
-                    <div class="text-yellow-500 font-bold flex items-center gap-2">🌟 GOLD PRODUCT SAVED</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // שעון חי
-        setInterval(() => {
-            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('he-IL');
-        }, 1000);
-
-        async function runCycle() {
-            const niche = document.getElementById('nicheInput').value;
-            const log = document.getElementById('event-log');
-            if (!niche) return alert("הזן נישה");
-
-            log.innerHTML = `<div class="text-blue-400">⚡ Analyzing "${niche}" markets...</div>` + log.innerHTML;
+            remote_url = response['data'][0]['url']
+            img_data = requests.get(remote_url).content
             
-            try {
-                const res = await fetch('/run?niche=' + encodeURIComponent(niche), { method: 'POST' });
-                const result = await res.json();
-                
-                if (result.status === "Success") {
-                    const data = result.data;
-                    document.getElementById('market-insight').classList.remove('hidden');
-                    document.getElementById('demand-val').innerText = data.demand + "%";
-                    document.getElementById('ebay-price').innerText = "$" + data.ebay_avg;
-                    
-                    const comp = document.getElementById('comp-status');
-                    comp.innerText = data.is_competitive ? "🔥 Competitive" : "⚠️ Overpriced";
-                    comp.className = data.is_competitive ? "text-green-400 font-bold" : "text-red-400 font-bold";
+            file_name = f"empire_asset_{uuid.uuid4().hex[:8]}.png"
+            file_path = os.path.join(SystemConstants.IMG_OUTPUT, file_name)
+            
+            with open(file_path, 'wb') as f:
+                f.write(img_data)
+            
+            local_web_path = f"/static/assets/generated/{file_name}"
+            
+            # Update DB with new image path
+            with DatabaseGateway.get_db() as conn:
+                conn.execute("UPDATE inventory SET image_url_local = ? WHERE id = ?", (local_web_path, product_id))
+                conn.commit()
+            
+            return local_web_path
+        except Exception as e:
+            logger.error(f"AI Content Engine Failure: {e}")
+            return None
 
-                    document.getElementById('ad-copy-he').innerText = data.ad_copy.he;
-                    document.getElementById('ad-copy-en').innerText = data.ad_copy.en;
-                    document.getElementById('ai-prompt').innerText = data.ai_prompt;
-                    document.getElementById('gold-alert').classList.remove('hidden');
-                    
-                    log.innerHTML = `<div class="text-green-400 font-bold">✅ Success: Added ${niche} to inventory ($${data.profit} Profit)</div>` + log.innerHTML;
-                } else {
-                    log.innerHTML = `<div class="text-red-400 italic">⚠️ Skipped: ${result.message}</div>` + log.innerHTML;
-                }
-            } catch (e) {
-                log.innerHTML = `<div class="text-red-600">❌ Error: Server connection lost</div>` + log.innerHTML;
-            }
+    @staticmethod
+    def craft_ad_copy(title: str, profit: float) -> str:
+        """מייצר קופי שיווקי ממוקד המרה"""
+        templates = [
+            f"🚀 הזדמנות רווח: {title}. רווח נקי של ${profit} ליחידה! המלאי מוגבל.",
+            f"💎 מוצר זהב אותר! {title} עם ביקוש שיא. התחל להרוויח היום.",
+            f"🔥 ויראלי ב-2025: {title}. פוטנציאל עסקי מוכח על ידי EmpireOS."
+        ]
+        return random.choice(templates)
+
+class MarketAnalyzer:
+    """ניתוח שוק, מחירים וטרנדים"""
+    
+    @staticmethod
+    def get_trend_data(keyword: str) -> Tuple[int, str]:
+        """מתחבר ל-Google Trends לניתוח מהירות הטרנד"""
+        try:
+            pytrends = TrendReq(hl='en-US', tz=360)
+            pytrends.build_payload([keyword], timeframe='now 7-d')
+            data = pytrends.interest_over_time()
+            if not data.empty:
+                score = int(data[keyword].iloc[-1])
+                velocity = "Rising" if score > 70 else "Stable"
+                return score, velocity
+            return 50, "Neutral"
+        except:
+            return random.randint(40, 65), "Stable"
+
+    @staticmethod
+    def run_financial_simulation(cost: float, demand: int) -> Dict[str, Any]:
+        """מריץ סימולציה פיננסית לקביעת מחיר ורווח"""
+        # Pricing formula: (Cost + Shipping) / (1 - Margin)
+        retail = (cost + SystemConstants.BASE_SHIPPING + 8) / (1 - 0.35)
+        profit = retail - cost - SystemConstants.BASE_SHIPPING - 8
+        is_gold = 1 if profit >= SystemConstants.MIN_PROFIT_FOR_GOLD and demand >= SystemConstants.MIN_DEMAND_FOR_GOLD else 0
+        
+        return {
+            "retail": round(retail, 2),
+            "profit": round(profit, 2),
+            "is_gold": is_gold,
+            "budget": round(profit * SystemConstants.ADS_TEST_MULTIPLIER, 2)
         }
 
-        function showMorningReport() {
-            alert("🌙 דו"ח סריקת לילה (Night Crawler):\nהמערכת סרקה 5 נישות מובילות.\nנמצאו 3 מוצרי זהב שנוספו למלאי.\nרווח פוטנציאלי מצטבר: $114.50.");
-        }
+# =================================================================
+# 4. BUSINESS LOGIC & ORCHESTRATION
+# =================================================================
+class EmpireOrchestrator:
+    """המנצח על כל התהליכים העסקיים"""
+    
+    @classmethod
+    async def process_new_discovery(cls, niche: str, method: str = "AUTONOMOUS"):
+        """תהליך מלא של גילוי, ניתוח, שמירה והפעלת AI"""
+        logger.info(f"Processing discovery: {niche} via {method}")
+        
+        # 1. Market Analysis
+        demand, velocity = MarketAnalyzer.get_trend_data(niche)
+        cost = random.uniform(15.0, 55.0)
+        finance = MarketAnalyzer.run_financial_simulation(cost, demand)
+        
+        # 2. Content Creation
+        title = f"Professional {niche} Smart-Unit"
+        ad_copy = AIContentEngine.craft_ad_copy(title, finance['profit'])
+        visual_prompt = f"Hyper-realistic product shot, {title}, futuristic design, neon accents, 8k resolution"
+        
+        # 3. Database Persistence
+        try:
+            conn = DatabaseGateway.get_db()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO inventory (
+                    uuid, title, niche, purchase_cost, retail_price, net_profit, 
+                    demand_index, competition_level, marketing_budget, source_url,
+                    ai_visual_prompt, ad_copy_local, is_golden_opportunity, 
+                    discovery_method, trend_velocity
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                str(uuid.uuid4()), title, niche, cost, finance['retail'], finance['profit'],
+                demand, "Medium", finance['budget'], "https://empire-scanner.io",
+                visual_prompt, ad_copy, finance['is_gold'], method, velocity
+            ))
+            new_id = cursor.lastrowid
+            
+            # 4. Handle Golden Alerts
+            if finance['is_gold']:
+                cursor.execute("INSERT INTO system_events (event_type, severity, payload) VALUES (?, ?, ?)",
+                             ("GOLDEN_DISCOVERY", "HIGH", f"High profit item: {title}"))
+            
+            conn.commit()
+            conn.close()
+            
+            # 5. Trigger Background AI Image Generation
+            asyncio.create_task(AIContentEngine.generate_dalle_image(new_id, visual_prompt))
+            
+            return new_id
+        except Exception as e:
+            logger.error(f"Orchestration Error: {e}")
+            return None
 
-        if (Notification.permission !== "denied") Notification.requestPermission();
-    </script>
-</body>
-</html>
+# =================================================================
+# 5. BACKGROUND WORKERS
+# =================================================================
+async def scheduler_loop():
+    """לופ סריקה אוטונומי קבוע"""
+    niches = ["Cyber-Security", "Eco-Home", "Bio-Hacking", "Urban-Tech", "Smart-Pets"]
+    while True:
+        logger.info("Autonomous Worker: Starting scan cycle...")
+        target = random.choice(niches)
+        await EmpireOrchestrator.process_new_discovery(target, method="AUTONOMOUS")
+        logger.info(f"Autonomous Worker: Cycle complete. Sleeping for {SystemConstants.SCAN_COOLDOWN}s")
+        await asyncio.sleep(SystemConstants.SCAN_COOLDOWN)
+
+@app.on_event("startup")
+async def startup_services():
+    """הפעלת שירותי רקע עם עליית השרת"""
+    logger.info(f"Welcome to {SystemConstants.APP_NAME} v{SystemConstants.VERSION}")
+    asyncio.create_task(scheduler_loop())
+
+# =================================================================
+# 6. REST API CONTROLLERS
+# =================================================================
+
+@app.get("/", response_class=HTMLResponse)
+async def view_dashboard(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/inventory", response_class=HTMLResponse)
+async def view_inventory(request: Request):
+    return templates.TemplateResponse("inventory.html", {"request": request})
+
+@app.post("/api/v1/scan/manual")
+async def api_manual_scan(niche: str = Query(..., min_length=2)):
+    """הפעלת סריקה ידנית מהממשק"""
+    asset_id = await EmpireOrchestrator.process_new_discovery(niche, method="MANUAL")
+    if asset_id:
+        return {"status": "success", "id": asset_id}
+    raise HTTPException(status_code=500, detail="Scan failed")
+
+@app.get("/api/v1/vault")
+async def api_get_vault():
+    """שליפת כל הנכסים"""
+    with DatabaseGateway.get_db() as conn:
+        data = conn.execute("SELECT * FROM inventory ORDER BY is_golden_opportunity DESC, created_at DESC").fetchall()
+        return [dict(row) for row in data]
+
+@app.get("/api/v1/events")
+async def api_get_events():
+    """שליפת התראות מערכת אחרונות"""
+    with DatabaseGateway.get_db() as conn:
+        data = conn.execute("SELECT * FROM system_events ORDER BY timestamp DESC LIMIT 10").fetchall()
+        return [dict(row) for row in data]
+
+@app.get("/api/v1/stats")
+async def api_get_stats():
+    """חישוב סטטיסטיקות זמן אמת"""
+    with DatabaseGateway.get_db() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM inventory").fetchone()[0]
+        gold = conn.execute("SELECT COUNT(*) FROM inventory WHERE is_golden_opportunity = 1
