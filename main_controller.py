@@ -359,3 +359,15 @@ if __name__ == "__main__":
     """
     print(banner)
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+from fastapi.middleware.cors import CORSMiddleware
+
+# אפשור לריאקט "לדבר" עם פייתון (CORS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # בפיתוח מאפשרים הכל
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# הגשת התמונות שה-AI מייצר בתיקייה static
+app.mount("/images", StaticFiles(directory="backend/static"), name="images")
