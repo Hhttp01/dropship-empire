@@ -386,3 +386,109 @@ app.add_middleware(
 async def get_inventory():
     # כאן הקוד ששולף מה- empire_unified.db
     return inventory_items
+import os
+import sqlite3
+import random
+import uvicorn
+import openai
+import requests
+import asyncio
+from fastapi import FastAPI, Request, Query, UploadFile, File, HTTPException
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+app = FastAPI()
+
+# פותר בעיות תקשורת בין הדפדפן לשרת
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# חיבור לתיקיות
+os.makedirs("static/images", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+DB_PATH = 'empire_master.db'
+
+# --- 1. אתחול מסד נתונים (כל הטבלאות מכל הקודים) ---
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        # טבלת מוצרים
+        c.execute('''CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT, niche TEXT, cost REAL, price REAL, profit REAL,
+            demand INTEGER, image_path TEXT, ad_copy TEXT, is_golden INTEGER,
+            scan_type TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        # טבלת פעולות (מהדגם השני)
+        c.execute('''CREATE TABLE IF NOT EXISTS pending_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT, title TEXT, desc TEXT, status TEXT DEFAULT 'pending')''')
+        conn.commit()
+
+init_db()
+
+# --- 2. לוגיקת AI וניתוח (מכל השיחה) ---
+async def generate_ai_assets(p_id, title, profit):
+    try:
+        # DALL-E (שדרוג התמונות)
+        response = openai.Image.create(prompt=f"Luxury product photo of {title}", n=1, size="512x512")
+        img_url = response['data'][0]['url']
+        img_data = requests.get(img_url).content
+        img_path = f"static/images/p_{p_id}.png"
+        with open(img_path, 'wb') as f: f.write(img_data)
+        
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("UPDATE products SET image_path = ? WHERE id = ?", (f"/{img_path}", p_id))
+    except Exception as e: print(f"AI Error: {e}")
+
+# --- 3. נתיבי API (החיבור ל-React) ---
+
+@app.get("/api/inventory")
+async def get_inventory():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
+        return [dict(r) for r in rows]
+
+@app.get("/api/actions")
+async def get_actions():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM pending_actions WHERE status='pending'").fetchall()
+        return [dict(r) for r in rows]
+
+@app.post("/api/run")
+async def run_scan(niche: str):
+    # לוגיקת ה-Scraping והחיבור
+    cost = random.uniform(10, 50)
+    profit = cost * 1.5
+    demand = random.randint(60, 95)
+    is_gold = 1 if profit > 25 and demand > 80 else 0
+    
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO products (title, niche, cost, profit, demand, is_golden, scan_type) VALUES (?,?,?,?,?,?,?)",
+                       (f"{niche} Pro", niche, cost, profit, demand, is_gold, "Manual"))
+        p_id = cursor.lastrowid
+        if is_gold:
+            cursor.execute("INSERT INTO pending_actions (type, title, desc) VALUES (?,?,?)",
+                           ("GOLD", f"Scale {niche}", "High demand detected! Increase budget?"))
+        conn.commit()
+    
+    asyncio.create_task(generate_ai_assets(p_id, niche, profit))
+    return {"status": "success", "id": p_id}
+
+@app.delete("/api/delete/{p_id}")
+async def delete_product(p_id: int):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM products WHERE id = ?", (p_id,))
+        conn.commit()
+    return {"status": "deleted"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
