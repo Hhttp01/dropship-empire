@@ -4,301 +4,348 @@ import random
 import asyncio
 import logging
 import json
-import statistics
+import sys
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Query, Request, Depends
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 import uvicorn
 
 # =================================================================
-# 1. CORE SYSTEM CONFIGURATION (הגדרות מערכת)
+# 1. GLOBAL SYSTEM CONFIGURATION & DIRECTORIES
 # =================================================================
-class EmpireSettings:
-    VERSION = "6.0.0-PREMIUM"
-    DB_PATH = "empire_vault.db"
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DASHBOARD_PATH = os.path.join(BASE_DIR, "dashboard")
-    LOGS_PATH = os.path.join(BASE_DIR, "logs")
+class EmpireCore:
+    VERSION = "7.0.0-SUPREME"
+    DB_NAME = "empire_vault.db"
+    DASHBOARD_DIR = "dashboard"
+    LOGS_DIR = "logs"
     
-    # Financial Thresholds
-    MIN_GOLDEN_PROFIT = 25.0
-    MIN_GOLDEN_DEMAND = 85
-    AD_CONVERSION_ESTIMATE = 0.025  # 2.5% Conversion rate for simulations
-    AVG_CPC = 0.75  # Average Cost Per Click in USD
+    # Thresholds for Golden Opportunities
+    GOLDEN_PROFIT_LIMIT = 25.0
+    GOLDEN_DEMAND_LIMIT = 85
+    
+    # Simulation Constants
+    ESTIMATED_CONVERSION_RATE = 0.03 # 3%
+    AVERAGE_CPC = 0.65 # USD
 
-# יצירת תשתיות תיקיות
-for path in [EmpireSettings.DASHBOARD_PATH, EmpireSettings.LOGS_PATH]:
-    if not os.path.exists(path):
-        os.makedirs(path)
+# Ensure system environment is ready
+for folder in [EmpireCore.DASHBOARD_DIR, EmpireCore.LOGS_DIR]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
-# הגדרת לוגים מתקדמת
+# Advanced Logging System
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s',
+    format='%(asctime)s | %(levelname)s | [%(name)s] %(message)s',
     handlers=[
-        logging.FileHandler(os.path.join(EmpireSettings.LOGS_PATH, "system_core.log")),
-        logging.StreamHandler()
+        logging.FileHandler(os.path.join(EmpireCore.LOGS_DIR, "empire_master.log")),
+        logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger("EmpireOS_Core")
+logger = logging.getLogger("EmpireOS_Master")
 
 app = FastAPI(
-    title="EmpireOS - Autonomous Business Controller",
-    description="The central brain for market scouting and asset management.",
-    version=EmpireSettings.VERSION
+    title="EmpireOS Master Controller",
+    version=EmpireCore.VERSION,
+    description="Full-scale autonomous business management engine."
 )
 
-# Mounting static files for GUI
-app.mount("/dashboard", StaticFiles(directory=EmpireSettings.DASHBOARD_PATH), name="dashboard")
+# Mounting the Dashboard
+if os.path.exists(EmpireCore.DASHBOARD_DIR):
+    app.mount("/dashboard", StaticFiles(directory=EmpireCore.DASHBOARD_DIR), name="dashboard")
+else:
+    logger.error(f"Critical: {EmpireCore.DASHBOARD_DIR} directory missing!")
 
 # =================================================================
-# 2. DATABASE ARCHITECTURE (ניהול מסד הנתונים)
+# 2. DATABASE INFRASTRUCTURE (SQLite Controller)
 # =================================================================
-class DatabaseManager:
-    """מחלקה לניהול ישיר של שאילתות ומבנה הנתונים"""
+class DatabaseController:
+    """Manages all persistent data storage and retrieval."""
     
     @staticmethod
-    def connect():
-        conn = sqlite3.connect(EmpireSettings.DB_PATH)
+    def get_db_connection():
+        conn = sqlite3.connect(EmpireCore.DB_NAME)
         conn.row_factory = sqlite3.Row
         return conn
 
     @classmethod
-    def setup_tables(cls):
-        conn = cls.connect()
+    def initialize_vault(cls):
+        """Initializes all necessary tables for the Empire."""
+        conn = cls.get_db_connection()
         db = conn.cursor()
         
-        # טבלת נכסים (Inventory)
+        # Table 1: Inventory Assets
         db.execute('''
             CREATE TABLE IF NOT EXISTS inventory (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
-                niche TEXT,
-                cost REAL,
-                suggested_price REAL,
-                profit REAL,
-                demand_score INTEGER,
-                competition TEXT,
-                ad_budget REAL,
+                niche TEXT DEFAULT 'General',
+                cost REAL NOT NULL,
+                suggested_price REAL NOT NULL,
+                profit REAL NOT NULL,
+                demand_score INTEGER NOT NULL,
+                competition TEXT CHECK(competition IN ('Low', 'Medium', 'High')),
+                ad_budget REAL DEFAULT 15.0,
                 url TEXT,
-                is_golden INTEGER,
-                ai_copy_he TEXT,
-                ai_copy_en TEXT,
+                is_golden INTEGER DEFAULT 0,
+                ai_ads_he TEXT,
+                ai_ads_en TEXT,
                 tags TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                status TEXT DEFAULT 'Scanned',
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # טבלת ביצועים (Performance Tracking)
+        # Table 2: System Activity Logs
         db.execute('''
-            CREATE TABLE IF NOT EXISTS performance_logs (
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_type TEXT,
+                description TEXT,
+                severity TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Table 3: Simulations History
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS sim_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 asset_id INTEGER,
-                action_type TEXT,
-                result_data TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(asset_id) REFERENCES inventory(id)
+                projected_roi REAL,
+                projected_sales INTEGER,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
         conn.commit()
         conn.close()
-        logger.info("Database Schema deployed successfully.")
+        logger.info("Database infrastructure verified and tables deployed.")
 
-# אתחול ה-DB בזמן העלייה
-DatabaseManager.setup_tables()
+# Run database setup
+DatabaseController.initialize_vault()
 
 # =================================================================
-# 3. DATA MODELS (מודלים להעברת נתונים)
+# 3. SCHEMAS & DATA VALIDATION (Pydantic Models)
 # =================================================================
-class AssetCreate(BaseModel):
-    title: str = Field(..., min_length=2)
-    niche: str = "General"
+class AssetModel(BaseModel):
+    title: str = Field(..., min_length=3, max_length=100)
+    niche: Optional[str] = "General"
     cost: float = Field(..., gt=0)
     suggested_price: float = Field(..., gt=0)
     demand_score: int = Field(..., ge=0, le=100)
     competition: str = "Medium"
     url: Optional[str] = "N/A"
+    ad_budget: Optional[float] = 15.0
 
-class SimulationRequest(BaseModel):
+    @validator('suggested_price')
+    def price_must_be_greater_than_cost(cls, v, values):
+        if 'cost' in values and v <= values['cost']:
+            raise ValueError('Suggested price must be higher than production cost')
+        return v
+
+class SimConfig(BaseModel):
     asset_id: int
-    ad_spend: float
+    test_budget: float = Field(..., gt=0)
 
 # =================================================================
-# 4. INTELLIGENCE ENGINE (מנוע הבינה העסקית)
+# 4. BUSINESS INTELLIGENCE & AI (The Brain)
 # =================================================================
 class EmpireIntelligence:
-    """המנוע שמנתח נתונים ומקבל החלטות"""
+    """Engine for analyzing market data and generating content."""
     
     @staticmethod
-    def evaluate_asset(profit: float, demand: int) -> bool:
-        return profit >= EmpireSettings.MIN_GOLDEN_PROFIT and demand >= EmpireSettings.MIN_GOLDEN_DEMAND
+    def calculate_golden_ratio(profit: float, demand: int) -> int:
+        """Determines if a product is a high-priority asset."""
+        if profit >= EmpireCore.GOLDEN_PROFIT_LIMIT and demand >= EmpireCore.GOLDEN_DEMAND_LIMIT:
+            return 1
+        return 0
 
     @staticmethod
-    def generate_marketing_content(title: str, niche: str) -> Dict[str, str]:
-        """מחולל תוכן שיווקי בסיסי - ניתן להרחיב עם API של OpenAI"""
+    def generate_ad_copy(title: str, niche: str, profit: float) -> Dict[str, str]:
+        """Procedural generation of marketing assets."""
+        he_templates = [
+            f"להרוויח {profit}$ על כל מכירה! המוצר שמשנה את נישת ה-{niche}: {title}.",
+            f"הטרנד החדש של 2025 כבר כאן. {title} - ביקוש שיא!",
+            f"דירוג ביקוש {random.randint(85,99)}%: {title} עכשיו במלאי מוגבל."
+        ]
+        en_templates = [
+            f"High Profit Alert: ${profit} net/unit. Meet the new {title}.",
+            f"The {niche} breakthrough you've been waiting for: {title}.",
+            f"Skyrocket your ROI with {title}. Limited supply available."
+        ]
         return {
-            "he": f"הכירו את הטרנד החדש בנישת ה-{niche}: {title}! פתרון מושלם לרווחיות גבוהה.",
-            "en": f"Check out the new {niche} trend: {title}! High demand and great ROI potential."
-        }
-
-    @staticmethod
-    def run_market_simulation(asset_data: Dict) -> Dict:
-        """סימולציית מכירות מבוססת הסתברות"""
-        clicks = 1000 # Default test batch
-        conv_rate = (asset_data['demand_score'] / 100) * EmpireSettings.AD_CONVERSION_ESTIMATE
-        sales = round(clicks * conv_rate)
-        total_profit = round(sales * asset_data['profit'], 2)
-        
-        return {
-            "projected_sales": sales,
-            "projected_profit": total_profit,
-            "roi_percentage": round((total_profit / (clicks * EmpireSettings.AVG_CPC)) * 100, 2)
+            "he": random.choice(he_templates),
+            "en": random.choice(en_templates)
         }
 
 # =================================================================
-# 5. API CONTROLLERS (נתיבי שליטה)
+# 5. API ROUTES (The Master Controllers)
 # =================================================================
 
-@app.get("/api/inventory", tags=["Assets"])
-async def get_inventory(niche: Optional[str] = None):
-    """שליפת כל הנכסים מהכספת עם אפשרות לסינון"""
-    conn = DatabaseManager.connect()
-    cursor = conn.cursor()
-    
-    if niche:
-        cursor.execute("SELECT * FROM inventory WHERE niche = ? ORDER BY created_at DESC", (niche,))
-    else:
-        cursor.execute("SELECT * FROM inventory ORDER BY created_at DESC")
-    
-    data = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return data
+@app.get("/api/inventory", tags=["Vault"])
+async def get_all_assets():
+    """Retrieves the complete inventory list with advanced sorting."""
+    try:
+        conn = DatabaseController.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM inventory ORDER BY is_golden DESC, timestamp DESC")
+        rows = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return rows
+    except Exception as e:
+        logger.error(f"Failed to fetch inventory: {e}")
+        return JSONResponse(status_code=500, content={"message": "Internal Database Error"})
 
-@app.post("/api/assets/add", tags=["Assets"])
-async def add_asset(asset: AssetCreate):
-    """הוספת נכס חדש וביצוע ניתוח ראשוני"""
+@app.post("/api/assets/add", tags=["Vault"])
+async def secure_new_asset(asset: AssetModel):
+    """Processes and secures a new asset into the vault."""
     profit = round(asset.suggested_price - asset.cost, 2)
-    is_gold = 1 if EmpireIntelligence.evaluate_asset(profit, asset.demand_score) else 0
-    marketing = EmpireIntelligence.generate_marketing_content(asset.title, asset.niche)
+    is_gold = EmpireIntelligence.calculate_golden_ratio(profit, asset.demand_score)
+    ads = EmpireIntelligence.generate_ad_copy(asset.title, asset.niche, profit)
     
     try:
-        conn = DatabaseManager.connect()
-        cursor = conn.cursor()
-        cursor.execute('''
+        conn = DatabaseController.get_db_connection()
+        db = conn.cursor()
+        db.execute('''
             INSERT INTO inventory (
                 title, niche, cost, suggested_price, profit, 
-                demand_score, competition, url, is_golden, 
-                ai_copy_he, ai_copy_en
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                demand_score, competition, ad_budget, url, is_golden, 
+                ai_ads_he, ai_ads_en, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             asset.title, asset.niche, asset.cost, asset.suggested_price, 
-            profit, asset.demand_score, asset.competition, asset.url, 
-            is_gold, marketing['he'], marketing['en']
+            profit, asset.demand_score, asset.competition, asset.ad_budget, 
+            asset.url, is_gold, ads['he'], ads['en'], 'Verified'
         ))
         conn.commit()
-        new_id = cursor.lastrowid
+        asset_id = db.lastrowid
         conn.close()
         
-        logger.info(f"Asset #{new_id} ({asset.title}) registered. Golden: {bool(is_gold)}")
-        return {"status": "success", "asset_id": new_id, "is_golden": bool(is_gold)}
+        logger.info(f"Asset #{asset_id} Secured. Golden Opportunity: {bool(is_gold)}")
+        return {"status": "Asset Secured", "id": asset_id, "is_golden": bool(is_gold)}
     except Exception as e:
-        logger.error(f"Failed to add asset: {e}")
-        raise HTTPException(status_code=500, detail="Database insertion failed")
-
-@app.get("/api/stats/global", tags=["Analytics"])
-async def get_global_stats():
-    """חישוב נתונים אגרגטיביים לכל האימפריה"""
-    conn = DatabaseManager.connect()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT COUNT(*) as total, SUM(profit) as potential FROM inventory")
-    base_stats = dict(cursor.fetchone())
-    
-    cursor.execute("SELECT COUNT(*) FROM inventory WHERE is_golden = 1")
-    base_stats['golden_count'] = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT niche, COUNT(*) as count FROM inventory GROUP BY niche")
-    base_stats['niche_distribution'] = [dict(row) for row in cursor.fetchall()]
-    
-    conn.close()
-    return base_stats
+        logger.error(f"Security Breach - Asset addition failed: {e}")
+        raise HTTPException(status_code=500, detail="Vault storage failure")
 
 @app.post("/api/scan/autonomous", tags=["Automation"])
-async def trigger_scout(background_tasks: BackgroundTasks, niche: str = "Trending"):
-    """הפעלת סורק אוטונומי שפועל ברקע"""
+async def launch_autonomous_scout(background_tasks: BackgroundTasks, niche: str = "Electronics"):
+    """Deploys a background worker to find new products autonomously."""
     
-    async def scout_worker(target_niche: str):
-        logger.info(f"Scout Worker started for niche: {target_niche}")
-        await asyncio.sleep(5) # Simulate web scraping & AI processing
+    async def scout_process(target: str):
+        logger.info(f"Background Scout deployed to: {target}")
+        await asyncio.sleep(4) # Simulating heavy AI processing
         
-        # Logic to "find" a high-potential item
-        mock_price = random.uniform(30, 150)
-        mock_cost = mock_price * 0.4
-        
-        auto_asset = AssetCreate(
-            title=f"AI-Detected {target_niche} Product",
-            niche=target_niche,
-            cost=round(mock_cost, 2),
-            suggested_price=round(mock_price, 2),
-            demand_score=random.randint(75, 98),
-            competition="Low",
-            url="https://aliexpress.com/scout_found_this"
+        # Synthetic discovery logic
+        price = round(random.uniform(40, 200), 2)
+        mock_asset = AssetModel(
+            title=f"Smart {target} Pro v{random.randint(10,99)}",
+            niche=target,
+            cost=round(price * 0.35, 2),
+            suggested_price=price,
+            demand_score=random.randint(65, 98),
+            competition=random.choice(["Low", "Medium"]),
+            url="https://aliexpress.com/scout_discovery"
         )
-        await add_asset(auto_asset)
-        logger.info(f"Autonomous scout found and saved new {target_niche} asset.")
+        await secure_new_asset(mock_asset)
+        logger.info("Background Scout successfully reported a new discovery.")
 
-    background_tasks.add_task(scout_worker, niche)
-    return {"status": "Scout Deployed", "target": niche}
+    background_tasks.add_task(scout_process, niche)
+    return {"status": "Scout Process Initiated", "niche": niche}
 
-@app.delete("/api/assets/{asset_id}", tags=["Assets"])
-async def delete_asset(asset_id: int):
-    """מחיקת נכס וכל הלוגים הקשורים אליו"""
-    conn = DatabaseManager.connect()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM inventory WHERE id = ?", (asset_id,))
-    cursor.execute("DELETE FROM performance_logs WHERE asset_id = ?", (asset_id,))
+@app.post("/api/simulate", tags=["Analytics"])
+async def run_market_simulation(config: SimConfig):
+    """Runs a probability-based sales simulation for a specific asset."""
+    conn = DatabaseController.get_db_connection()
+    asset = conn.execute("SELECT * FROM inventory WHERE id = ?", (config.asset_id,)).fetchone()
+    conn.close()
+    
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found in vault")
+    
+    asset_dict = dict(asset)
+    clicks = config.test_budget / EmpireCore.AVERAGE_CPC
+    conversion = (asset_dict['demand_score'] / 100) * EmpireCore.ESTIMATED_CONVERSION_RATE
+    projected_sales = round(clicks * conversion)
+    net_profit = round((projected_sales * asset_dict['profit']) - config.test_budget, 2)
+    
+    # Log simulation to history
+    conn = DatabaseController.get_db_connection()
+    conn.execute("INSERT INTO sim_history (asset_id, projected_roi, projected_sales) VALUES (?, ?, ?)",
+                 (config.asset_id, net_profit, projected_sales))
     conn.commit()
     conn.close()
-    return {"status": "Asset Purged"}
+    
+    return {
+        "asset": asset_dict['title'],
+        "projected_sales": projected_sales,
+        "net_profit_potential": net_profit,
+        "roi_status": "HIGH" if net_profit > config.test_budget else "STABLE"
+    }
+
+@app.get("/api/stats/summary", tags=["Analytics"])
+async def get_empire_summary():
+    """Generates high-level financial and operational statistics."""
+    conn = DatabaseController.get_db_connection()
+    db = conn.cursor()
+    
+    stats = {}
+    stats['total_assets'] = db.execute("SELECT COUNT(*) FROM inventory").fetchone()[0]
+    stats['golden_opportunities'] = db.execute("SELECT COUNT(*) FROM inventory WHERE is_golden = 1").fetchone()[0]
+    stats['total_potential_profit'] = db.execute("SELECT SUM(profit) FROM inventory").fetchone()[0] or 0
+    
+    # Niche analysis
+    db.execute("SELECT niche, COUNT(*) as count FROM inventory GROUP BY niche")
+    stats['niche_breakdown'] = [dict(row) for row in db.fetchall()]
+    
+    conn.close()
+    return stats
+
+@app.delete("/api/assets/{asset_id}", tags=["Vault"])
+async def purge_asset(asset_id: int):
+    """Permanently removes an asset from the vault."""
+    conn = DatabaseController.get_db_connection()
+    conn.execute("DELETE FROM inventory WHERE id = ?", (asset_id,))
+    conn.execute("DELETE FROM sim_history WHERE asset_id = ?", (asset_id,))
+    conn.commit()
+    conn.close()
+    logger.warning(f"Purged Asset #{asset_id} and all related records.")
+    return {"status": "Asset Eliminated"}
 
 # =================================================================
-# 6. PAGE ROUTING (ניתוב דפי ממשק)
+# 6. FRONTEND SERVING (UI Routes)
 # =================================================================
 
 @app.get("/", include_in_schema=False)
-async def root():
-    return FileResponse(os.path.join(EmpireSettings.DASHBOARD_PATH, "index.html"))
+async def serve_index():
+    return FileResponse(os.path.join(EmpireCore.DASHBOARD_DIR, "index.html"))
 
 @app.get("/inventory", include_in_schema=False)
-async def inventory_page():
-    return FileResponse(os.path.join(EmpireSettings.DASHBOARD_PATH, "inventory.html"))
+async def serve_inventory():
+    return FileResponse(os.path.join(EmpireCore.DASHBOARD_DIR, "inventory.html"))
 
 @app.get("/health")
-async def health_check():
-    """בדיקת תקינות המערכת"""
+async def system_health():
+    """Returns the operational status of the Empire engine."""
     return {
-        "status": "online",
-        "version": EmpireSettings.VERSION,
-        "database": "connected" if os.path.exists(EmpireSettings.DB_PATH) else "error",
-        "timestamp": datetime.now().isoformat()
+        "engine_version": EmpireCore.VERSION,
+        "db_status": "ONLINE",
+        "uptime_reference": datetime.now().isoformat(),
+        "vault_size": os.path.getsize(EmpireCore.DB_NAME) if os.path.exists(EmpireCore.DB_NAME) else 0
     }
 
 # =================================================================
-# 7. EXECUTION (הפעלת השרת)
+# 7. ENGINE LAUNCHER
 # =================================================================
 if __name__ == "__main__":
-    # Banner
-    print("="*60)
-    print(f"EMPIRE OS - {EmpireSettings.VERSION}")
-    print(f"STARTING CENTRAL CONTROLLER...")
-    print(f"DASHBOARD: http://localhost:8000")
-    print(f"API DOCS: http://localhost:8000/docs")
-    print("="*60)
+    print("\n" + "="*50)
+    print(f"  EMPIRE MASTER CONTROLLER - v{EmpireCore.VERSION}")
+    print("="*50)
+    print(f"  [*] STORAGE: {EmpireCore.DB_NAME}")
+    print(f"  [*] INTERFACE: http://localhost:8000")
+    print(f"  [*] DOCUMENTATION: http://localhost:8000/docs")
+    print("="*50 + "\n")
     
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
-
-# EOF - End of Main Controller v6.0
