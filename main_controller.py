@@ -371,3 +371,18 @@ app.add_middleware(
 
 # הגשת התמונות שה-AI מייצר בתיקייה static
 app.mount("/images", StaticFiles(directory="backend/static"), name="images")
+from fastapi.middleware.cors import CORSMiddleware
+
+# הגדרת CORS - קריטי כדי שהדפדפן לא יחסום את החיבור
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # בייצור נגביל את זה לכתובת של ה-Frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/api/v1/inventory")
+async def get_inventory():
+    # כאן הקוד ששולף מה- empire_unified.db
+    return inventory_items
